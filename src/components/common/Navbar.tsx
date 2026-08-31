@@ -11,7 +11,8 @@ import {
   Ambulance, 
   Building2, 
   Zap,
-  MapPin
+  MapPin,
+  Compass
 } from 'lucide-react';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { UserRole } from '../../types/disaster';
@@ -48,42 +49,46 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
               onClick={() => store.setRole('CITIZEN')}
               className="flex items-center gap-2.5 text-left focus:outline-none"
             >
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/30 border border-red-500/30">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-red-700 to-amber-600 flex items-center justify-center shadow-lg shadow-red-900/30 border border-red-500/40">
                 <ShieldAlert className="w-6 h-6 text-white animate-pulse-fast" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-lg tracking-tight text-white font-mono">
-                    DISASTER<span className="text-red-500">GUARD</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-black text-xl tracking-tight text-white font-mono">
+                    DISASTER<span className="text-red-500"> X</span>
                   </span>
-                  <span className="text-[10px] bg-red-950 text-red-400 font-mono px-1.5 py-0.2 rounded border border-red-800">AI</span>
+                  <span className="text-[10px] bg-red-950 text-red-400 font-mono px-1.5 py-0.2 rounded border border-red-800 font-bold">
+                    AI
+                  </span>
                 </div>
-                <p className="text-[11px] text-gray-400 font-medium hidden sm:block">Adaptive Disaster Intelligence Platform</p>
+                <p className="text-[11px] text-gray-400 font-medium hidden sm:block">
+                  Adaptive Disaster Response & Management System
+                </p>
               </div>
             </button>
 
-            <div className="hidden lg:block ml-2">
+            <div className="hidden xl:block ml-2">
               <OperationalStatusBadge />
             </div>
           </div>
 
           {/* Desktop Role Switcher Bar */}
-          <div className="hidden md:flex items-center bg-gray-900/90 p-1 rounded-lg border border-gray-800">
+          <div className="hidden md:flex items-center bg-gray-900/90 p-1 rounded-xl border border-gray-800">
             <button
               onClick={() => handleRoleChange('CITIZEN')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                 currentRole === 'CITIZEN'
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
               }`}
             >
               <User className="w-3.5 h-3.5" />
-              <span>Citizen Portal</span>
+              <span>Citizen Experience</span>
             </button>
 
             <button
               onClick={() => handleRoleChange('RESPONDER')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                 currentRole === 'RESPONDER'
                   ? 'bg-amber-600 text-white shadow-md'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
@@ -95,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
 
             <button
               onClick={() => handleRoleChange('ADMIN')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                 currentRole === 'ADMIN'
                   ? 'bg-indigo-600 text-white shadow-md'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
@@ -107,11 +112,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
           </div>
 
           {/* Action Tools & Toggles */}
-          <div className="hidden sm:flex items-center gap-2.5">
+          <div className="hidden sm:flex items-center gap-2">
             {/* Quick Citizen Report Button */}
             <button
               onClick={onOpenReportModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold rounded-lg border border-gray-700 transition shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-amber-300 text-xs font-bold rounded-lg border border-gray-700 transition shadow-sm"
             >
               <MapPin className="w-3.5 h-3.5 text-amber-400" />
               <span>Report Incident</span>
@@ -169,7 +174,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
               }`}
             >
               <Zap className="w-3.5 h-3.5 text-red-400 fill-current" />
-              <span>{isEmergencyMode ? '🚨 EXIT EMERGENCY MODE' : '🚨 EMERGENCY MODE'}</span>
+              <span>{isEmergencyMode ? '🚨 EXIT SOS MODE' : '🚨 EMERGENCY MODE'}</span>
             </button>
           </div>
 
@@ -201,7 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
 
           <div>
             <label className="text-[11px] uppercase font-mono text-gray-400 font-bold block mb-1.5">
-              Select User Role Experience
+              Select Experience
             </label>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -226,7 +231,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
                   currentRole === 'ADMIN' ? 'bg-indigo-600 text-white' : 'bg-gray-900 text-gray-300'
                 }`}
               >
-                🏛️ Authority
+                🏛️ Command
               </button>
             </div>
           </div>

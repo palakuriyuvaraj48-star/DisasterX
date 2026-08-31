@@ -21,6 +21,7 @@ import { ResourceMatrix } from './ResourceMatrix';
 import { TeamManager } from './TeamManager';
 import { AuditLogTable } from './AuditLogTable';
 import { ScenarioSimulator } from './ScenarioSimulator';
+import { DemoBadge } from '../common/DemoBadge';
 
 export const CommandCenter: React.FC = () => {
   const { 
@@ -49,22 +50,26 @@ export const CommandCenter: React.FC = () => {
       {/* 1. TOP COMMAND HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-900/90 border border-gray-800 p-5 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
             <Building2 className="w-7 h-7 text-indigo-400" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
-                DISASTER RESPONSE COMMAND CENTER
+                🏛️ Disaster Response Command Center
               </h1>
               <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-mono font-bold">
-                AUTHORITY LIVE
+                AUTHORITY ACTIVE
               </span>
             </div>
             <p className="text-xs text-gray-400 font-medium">
-              Inter-Agency Coordination • Satellite Ground Truth • Multi-Sector Asset Dispatch
+              Inter-Agency Command • Ground Truth Verification • Multi-Sector Asset Dispatch
             </p>
           </div>
+        </div>
+
+        <div>
+          <DemoBadge />
         </div>
       </div>
 
@@ -82,10 +87,10 @@ export const CommandCenter: React.FC = () => {
 
         {/* Metric 2: Critical Danger Zones */}
         <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-xl shadow">
-          <span className="text-[10px] text-gray-400 uppercase block font-semibold">Blocked Corridors</span>
+          <span className="text-[10px] text-gray-400 uppercase block font-semibold">Critical Zones</span>
           <div className="text-2xl font-black text-amber-400 mt-1 flex items-baseline justify-between">
             <span>{roadblocks.length}</span>
-            <span className="text-[11px] text-gray-400">Hazards</span>
+            <span className="text-[11px] text-gray-400">Blocked</span>
           </div>
         </div>
 
@@ -109,7 +114,7 @@ export const CommandCenter: React.FC = () => {
 
         {/* Metric 5: Available Shelters */}
         <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-xl shadow">
-          <span className="text-[10px] text-gray-400 uppercase block font-semibold">Open Shelters</span>
+          <span className="text-[10px] text-gray-400 uppercase block font-semibold">Available Shelters</span>
           <div className="text-2xl font-black text-blue-400 mt-1 flex items-baseline justify-between">
             <span>{openSheltersCount}</span>
             <span className="text-[11px] text-gray-400">/ {shelters.length}</span>
@@ -118,7 +123,7 @@ export const CommandCenter: React.FC = () => {
 
         {/* Metric 6: Active Response Units */}
         <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-xl shadow">
-          <span className="text-[10px] text-gray-400 uppercase block font-semibold">Units Deployed</span>
+          <span className="text-[10px] text-gray-400 uppercase block font-semibold">Active Response Teams</span>
           <div className="text-2xl font-black text-indigo-400 mt-1 flex items-baseline justify-between">
             <span>{activeTeamsCount}</span>
             <span className="text-[11px] text-gray-400">/ {teams.length}</span>
@@ -138,7 +143,7 @@ export const CommandCenter: React.FC = () => {
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>Tactical GIS Map</span>
+          <span>Live Situation Map</span>
         </button>
 
         <button
@@ -150,7 +155,7 @@ export const CommandCenter: React.FC = () => {
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>Incident Triage ({incidents.filter(i => i.verificationStatus === 'PENDING').length} Pending)</span>
+          <span>Incident Verification ({incidents.filter(i => i.verificationStatus === 'PENDING').length} Pending)</span>
         </button>
 
         <button
@@ -162,7 +167,7 @@ export const CommandCenter: React.FC = () => {
           }`}
         >
           <Package className="w-4 h-4" />
-          <span>Logistics Matrix</span>
+          <span>Resource Coordination</span>
         </button>
 
         <button
@@ -174,7 +179,7 @@ export const CommandCenter: React.FC = () => {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Response Battalions</span>
+          <span>Response Teams</span>
         </button>
 
         <button
@@ -198,7 +203,7 @@ export const CommandCenter: React.FC = () => {
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>SIH Scenario Engine</span>
+          <span>SIH Demo Simulation</span>
         </button>
       </div>
 

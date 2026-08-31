@@ -10,7 +10,8 @@ import {
   MapPin, 
   Phone, 
   Home, 
-  Navigation 
+  Navigation,
+  Building2
 } from 'lucide-react';
 import { aiService, AIMessage, EMERGENCY_QUICK_CHIPS } from '../../services/aiService';
 import { soundEffects } from '../../services/soundEffects';
@@ -34,7 +35,7 @@ export const ResponseAIChat: React.FC<ResponseAIChatProps> = ({
     {
       id: 'AI-INIT',
       sender: 'AI',
-      text: `🤖 **Hello, I am Response AI.**\n\nI provide **instant, safety-first emergency guidance** during active disasters.\n\n*How can I assist you right now?* You can type your situation below or choose a quick prompt.`,
+      text: `🤖 **Hello, I am Response AI.**\n\nI provide **concise, safety-focused emergency guidance** during active disasters.\n\n*How can I assist you right now?* Type your situation below or choose a quick prompt.`,
       timestamp: 'Just now'
     }
   ]);
@@ -88,29 +89,42 @@ export const ResponseAIChat: React.FC<ResponseAIChatProps> = ({
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[2100] w-[420px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-5rem)] bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
+    <div className="fixed bottom-4 right-4 z-[2100] w-[440px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[calc(100vh-5rem)] bg-gray-900 border-2 border-gray-700 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
       
       {/* Chat Header */}
-      <div className="px-4 py-3 bg-gray-800 border-b border-gray-700 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center">
+      <div className="px-5 py-3.5 bg-gray-800 border-b border-gray-700 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center">
             <Bot className="w-5 h-5 text-blue-400" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm text-white font-mono">RESPONSE AI</span>
-              <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1 rounded border border-emerald-800">OFFLINE READY</span>
+              <span className="font-bold text-base text-white font-mono">Response AI</span>
+              <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-800 font-mono font-bold">
+                OFFLINE READY
+              </span>
             </div>
-            <p className="text-[11px] text-gray-400">Deterministic Safety Protocols</p>
+            <p className="text-[11px] text-gray-400">Emergency Protocol Guidance</p>
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition"
         >
           <X className="w-5 h-5" />
         </button>
+      </div>
+
+      {/* Disclaimers & Trust Distinctions Banner */}
+      <div className="px-4 py-2 bg-gray-950 border-b border-gray-800 text-[11px] text-gray-400 font-mono flex items-center justify-between">
+        <span className="flex items-center gap-1 text-blue-400">
+          <span>🤖 AI Guidance</span>
+        </span>
+        <span className="text-gray-600">vs</span>
+        <span className="flex items-center gap-1 text-emerald-400">
+          <span>🏛️ Verified Authority Info</span>
+        </span>
       </div>
 
       {/* Messages Area */}
@@ -124,13 +138,20 @@ export const ResponseAIChat: React.FC<ResponseAIChatProps> = ({
               className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow ${
+                className={`max-w-[88%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow ${
                   isUser
                     ? 'bg-blue-600 text-white rounded-br-none'
                     : 'bg-gray-800 text-gray-100 border border-gray-700 rounded-bl-none'
                 }`}
               >
-                <div className="whitespace-pre-line">
+                {!isUser && (
+                  <div className="text-[10px] font-mono uppercase text-blue-400 font-bold mb-1 flex items-center gap-1">
+                    <Bot className="w-3 h-3" />
+                    <span>Response AI Directive</span>
+                  </div>
+                )}
+
+                <div className="whitespace-pre-line font-sans">
                   {msg.text.replace(/\*\*(.*?)\*\*/g, '$1')}
                 </div>
 
@@ -174,7 +195,7 @@ export const ResponseAIChat: React.FC<ResponseAIChatProps> = ({
           <button
             key={idx}
             onClick={() => handleSend(chip)}
-            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] font-medium rounded-full border border-gray-700 whitespace-nowrap transition"
+            className="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] font-medium rounded-full border border-gray-700 whitespace-nowrap transition"
           >
             {chip}
           </button>
@@ -191,10 +212,10 @@ export const ResponseAIChat: React.FC<ResponseAIChatProps> = ({
       >
         <input
           type="text"
-          placeholder="Describe your situation or hazard..."
+          placeholder="Describe your situation or emergency query..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          className="flex-1 px-3.5 py-2 bg-gray-950 border border-gray-700 rounded-xl text-xs sm:text-sm text-white focus:border-blue-500 focus:outline-none"
+          className="flex-1 px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-xs sm:text-sm text-white focus:border-blue-500 focus:outline-none"
         />
         <button
           type="submit"

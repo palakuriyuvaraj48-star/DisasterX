@@ -44,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950/80 border border-red-800 text-red-400 text-xs font-mono font-bold tracking-wider uppercase">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-              <span>AI-POWERED DISASTER RESPONSE</span>
+              <span>🚨 AI-POWERED DISASTER RESPONSE</span>
             </div>
             <OperationalStatusBadge />
           </div>
@@ -59,8 +59,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* Supporting Text */}
           <p className="text-base sm:text-lg text-gray-300 font-normal leading-relaxed max-w-2xl">
-            An AI-powered, offline-first platform that turns fragmented disaster information into 
-            <strong className="text-white font-semibold"> clear emergency guidance</strong>, verified ground intelligence, and adaptive response decisions.
+            <strong className="text-white font-bold">Disaster X</strong> connects citizens, responders and authorities through AI-guided emergency assistance, verified ground intelligence and adaptive evacuation support.
           </p>
 
           {/* Primary & Secondary Call to Actions */}
@@ -69,15 +68,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               onClick={() => store.toggleEmergencyMode(true)}
               className="px-6 py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold text-sm sm:text-base rounded-xl shadow-xl shadow-red-900/40 flex items-center gap-2.5 transition active:scale-95"
             >
-              <span>Get Emergency Guidance</span>
+              <span>🆘 Get Emergency Guidance</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
             <button
               onClick={onExploreIntelligence}
-              className="px-6 py-3.5 bg-gray-800/90 hover:bg-gray-700 text-gray-200 font-semibold text-sm sm:text-base rounded-xl border border-gray-700 hover:border-gray-600 transition shadow"
+              className="px-6 py-3.5 bg-gray-800/90 hover:bg-gray-700 text-gray-200 font-semibold text-sm sm:text-base rounded-xl border border-gray-700 hover:border-gray-600 transition shadow flex items-center gap-2"
             >
-              Explore Response Intelligence
+              <span>🗺️ Open Response Center</span>
             </button>
 
             <button
@@ -101,7 +100,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Verified Ground Truth</span>
+              <span>Adaptive Re-routing</span>
             </div>
           </div>
 
@@ -159,7 +158,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   </span>
                 </div>
                 <p className="text-xs font-bold text-white font-sans">
-                  Evacuate Zone B → Main Ridge Road → Safe Shelter 04
+                  Evacuate Zone A → Main Road → Shelter 04
                 </p>
                 <div className="text-[11px] text-gray-300 font-sans flex items-center justify-between pt-1">
                   <span>Est. Distance: <strong>2.4 km</strong></span>
@@ -182,6 +181,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <button
                 onClick={onOpenReportModal}
                 className="py-2 px-3 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 transition"
+                title="Report Ground Incident"
               >
                 <MapPin className="w-3.5 h-3.5 text-amber-400" />
               </button>

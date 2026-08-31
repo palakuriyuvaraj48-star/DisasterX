@@ -1,7 +1,7 @@
 {
-  "name": "DisasterGuard AI Response Platform",
-  "short_name": "DisasterGuard",
-  "description": "Offline-first adaptive emergency guidance and disaster command intelligence",
+  "name": "Disaster X — Adaptive Response System",
+  "short_name": "Disaster X",
+  "description": "AI-Powered Adaptive Disaster Response & Management System",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0F19",

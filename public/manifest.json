@@ -1,0 +1,16 @@
+{
+  "name": "DisasterGuard AI Response Platform",
+  "short_name": "DisasterGuard",
+  "description": "Offline-first adaptive emergency guidance and disaster command intelligence",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F19",
+  "theme_color": "#DC2626",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

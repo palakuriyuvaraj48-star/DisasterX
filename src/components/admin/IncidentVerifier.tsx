@@ -1,241 +1,255 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, 
-  XCircle, 
   CheckCircle2, 
-  Clock, 
+  XCircle, 
   AlertTriangle, 
-  Users, 
-  MapPin, 
+  Ambulance, 
   Filter, 
-  Check, 
+  Eye, 
+  Clock, 
+  MapPin, 
+  Sparkles,
   Search,
-  UserCheck
+  ExternalLink,
+  Phone,
+  Layers,
+  ChevronDown
 } from 'lucide-react';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { IncidentReport, SeverityLevel, VerificationStatus } from '../../types/disaster';
 import { soundEffects } from '../../services/soundEffects';
+import { TrustScoreBadge } from '../trust/TrustScoreBadge';
 
 export const IncidentVerifier: React.FC = () => {
   const { incidents, teams, store } = useDisasterStore();
-  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('ALL');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedIncidentForAssignment, setSelectedIncidentForAssignment] = useState<string | null>(null);
-  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
 
   const filteredIncidents = incidents.filter(inc => {
+    if (filterSeverity !== 'ALL' && inc.severity !== filterSeverity) return false;
     if (filterStatus !== 'ALL' && inc.verificationStatus !== filterStatus) return false;
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      return (
-        inc.title.toLowerCase().includes(term) ||
-        inc.locationName.toLowerCase().includes(term) ||
-        inc.id.toLowerCase().includes(term)
-      );
+    if (searchQuery && !inc.title.toLowerCase().includes(searchQuery.toLowerCase()) && !inc.locationName.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
     }
     return true;
   });
 
   const handleVerify = (id: string) => {
-    store.verifyIncident(id, 'District Magistrate Command');
+    store.verifyIncident(id, 'OFFICER-HQ-99');
     soundEffects.playVerificationBlip();
   };
 
   const handleReject = (id: string) => {
-    store.rejectIncident(id, 'Flagged as duplicate / unsubstantiated', 'Command Duty Officer');
+    store.rejectIncident(id, 'Ground reconnaissance found no active hazard.');
+    soundEffects.playVerificationBlip();
   };
 
-  const handleAssignTeam = (incidentId: string) => {
+  const handleAssign = (incidentId: string) => {
     if (!selectedTeamId) return;
-    store.assignTeam(incidentId, selectedTeamId, 'Operations Lead');
+    store.assignTeam(selectedTeamId, incidentId);
     soundEffects.playVerificationBlip();
-    setSelectedIncidentForAssignment(null);
     setSelectedTeamId('');
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       
-      {/* Triage Filter Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-900/90 p-4 rounded-xl border border-gray-800">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-72">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Search incidents by location or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-gray-950 border border-gray-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
+      {/* Controls & Filter Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-900/90 p-4 rounded-2xl border border-gray-800 shadow">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search incident reports by title or zone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-950 border border-gray-700 rounded-xl text-xs sm:text-sm text-white focus:border-blue-500 focus:outline-none"
+          />
         </div>
 
-        {/* Status Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {(['ALL', 'PENDING', 'VERIFIED', 'REJECTED'] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
-              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition ${
-                filterStatus === st
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
-              {st} ({incidents.filter(i => st === 'ALL' || i.verificationStatus === st).length})
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-xs font-mono text-gray-200 focus:outline-none"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="PENDING">🟡 Pending Verification</option>
+            <option value="VERIFIED">🟢 Verified</option>
+            <option value="REJECTED">🔴 Rejected</option>
+          </select>
+
+          <select
+            value={filterSeverity}
+            onChange={(e) => setFilterSeverity(e.target.value)}
+            className="px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-xs font-mono text-gray-200 focus:outline-none"
+          >
+            <option value="ALL">All Severities</option>
+            <option value="CRITICAL">🔴 Critical</option>
+            <option value="HIGH">🟠 High</option>
+            <option value="MODERATE">🟡 Moderate</option>
+            <option value="LOW">🟢 Low</option>
+          </select>
         </div>
       </div>
 
-      {/* Incidents Table / Cards */}
-      <div className="space-y-3">
-        {filteredIncidents.length === 0 ? (
-          <div className="text-center py-12 bg-gray-900/50 rounded-xl border border-gray-800 text-gray-400 text-xs">
-            No incident reports found matching filter.
-          </div>
-        ) : (
-          filteredIncidents.map((incident) => {
-            const isPending = incident.verificationStatus === 'PENDING';
-            const isVerified = incident.verificationStatus === 'VERIFIED';
-            const isCritical = incident.severity === 'CRITICAL';
+      {/* Incidents Verification Table */}
+      <div className="bg-gray-900/90 border border-gray-800 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="bg-gray-950 text-gray-400 uppercase text-[10px] tracking-wider border-b border-gray-800">
+              <tr>
+                <th className="py-3.5 px-4">Type & Incident</th>
+                <th className="py-3.5 px-4">Location</th>
+                <th className="py-3.5 px-4">Severity</th>
+                <th className="py-3.5 px-4">Trust Score</th>
+                <th className="py-3.5 px-4">Verification Status</th>
+                <th className="py-3.5 px-4">Assigned Team</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800 text-gray-200">
+              {filteredIncidents.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-gray-500 font-mono">
+                    📭 No incidents matching the selected criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredIncidents.map((inc) => {
+                  const assignedTeam = teams.find(t => t.id === inc.assignedTeamId);
+                  return (
+                    <tr key={inc.id} className="hover:bg-gray-800/40 transition">
+                      
+                      {/* Title & Type */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-white font-sans text-sm">{inc.title}</div>
+                        <div className="text-[11px] text-gray-400 font-mono flex items-center gap-1 mt-0.5">
+                          <span>{inc.source.replace('_', ' ')}</span>
+                          <span>•</span>
+                          <span>{new Date(inc.reportedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </td>
 
-            return (
-              <div
-                key={incident.id}
-                className="bg-gray-900/90 border border-gray-800 hover:border-gray-700 rounded-xl p-4 shadow-md transition space-y-3"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-800">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-xs text-blue-400">{incident.id}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                      isCritical ? 'bg-red-600 text-white' :
-                      incident.severity === 'HIGH' ? 'bg-amber-600 text-white' :
-                      'bg-blue-600 text-white'
-                    }`}>
-                      {incident.severity}
-                    </span>
+                      {/* Location */}
+                      <td className="py-3.5 px-4">
+                        <span className="text-gray-300 font-sans">{inc.locationName}</span>
+                        <div className="text-[10px] text-gray-500 font-mono">
+                          {inc.coordinates.lat.toFixed(4)}, {inc.coordinates.lng.toFixed(4)}
+                        </div>
+                      </td>
 
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono flex items-center gap-1 ${
-                      isVerified ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
-                      isPending ? 'bg-amber-950 text-amber-300 border border-amber-800' :
-                      'bg-red-950 text-red-300 border border-red-800'
-                    }`}>
-                      {isVerified && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
-                      {isPending && <Clock className="w-3 h-3 text-amber-400" />}
-                      {incident.verificationStatus} ({incident.confidenceScore}% Trust)
-                    </span>
-                  </div>
+                      {/* Severity */}
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2.5 py-0.5 rounded font-mono font-bold text-[10px] ${
+                          inc.severity === 'CRITICAL' ? 'bg-red-950 text-red-400 border border-red-800' :
+                          inc.severity === 'HIGH' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                          inc.severity === 'MODERATE' ? 'bg-yellow-950 text-yellow-300 border border-yellow-800' :
+                          'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                        }`}>
+                          {inc.severity}
+                        </span>
+                      </td>
 
-                  <div className="text-[11px] font-mono text-gray-400">
-                    Reported: {new Date(incident.reportedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Source: {incident.source}
-                  </div>
-                </div>
+                      {/* Trust Score Badge */}
+                      <td className="py-3.5 px-4">
+                        <TrustScoreBadge incident={inc} size="sm" />
+                      </td>
 
-                <div>
-                  <h4 className="font-bold text-base text-white">{incident.title}</h4>
-                  <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                    <MapPin className="w-3.5 h-3.5 text-red-400" />
-                    <span>{incident.locationName}</span>
-                    <span className="text-gray-500">|</span>
-                    <span>Estimated Impact: ~{incident.estimatedPeopleAffected} citizens</span>
-                  </p>
-                  <p className="text-xs text-gray-300 mt-2 bg-gray-950/60 p-2.5 rounded-lg border border-gray-800">
-                    {incident.description}
-                  </p>
-                </div>
+                      {/* Status */}
+                      <td className="py-3.5 px-4">
+                        {inc.verificationStatus === 'VERIFIED' && (
+                          <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-mono font-bold flex items-center gap-1 w-fit">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>VERIFIED BY RESPONSE TEAM</span>
+                          </span>
+                        )}
+                        {inc.verificationStatus === 'PENDING' && (
+                          <span className="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-mono font-bold flex items-center gap-1 w-fit">
+                            <Clock className="w-3 h-3 text-amber-400" />
+                            <span>PENDING VERIFICATION</span>
+                          </span>
+                        )}
+                        {inc.verificationStatus === 'REJECTED' && (
+                          <span className="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 text-[10px] font-mono font-bold flex items-center gap-1 w-fit">
+                            <XCircle className="w-3 h-3 text-red-400" />
+                            <span>REJECTED</span>
+                          </span>
+                        )}
+                      </td>
 
-                {/* Audit & Notes trail if available */}
-                {incident.notes && incident.notes.length > 0 && (
-                  <div className="text-[11px] text-gray-400 font-mono space-y-0.5">
-                    {incident.notes.map((n, idx) => (
-                      <div key={idx} className="flex items-center gap-1 text-gray-400">
-                        <span>↳ {n}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      {/* Assigned Team */}
+                      <td className="py-3.5 px-4">
+                        {assignedTeam ? (
+                          <span className="text-blue-300 font-sans text-xs flex items-center gap-1 font-bold">
+                            <Ambulance className="w-3.5 h-3.5 text-blue-400" />
+                            <span>{assignedTeam.name}</span>
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              value={selectedTeamId}
+                              onChange={(e) => setSelectedTeamId(e.target.value)}
+                              className="px-2 py-1 bg-gray-950 border border-gray-700 rounded text-[11px] text-gray-300"
+                            >
+                              <option value="">Select Team...</option>
+                              {teams.filter(t => t.status === 'AVAILABLE').map(t => (
+                                <option key={t.id} value={t.id}>{t.name} ({t.category})</option>
+                              ))}
+                            </select>
+                            <button
+                              disabled={!selectedTeamId}
+                              onClick={() => handleAssign(inc.id)}
+                              className="px-2 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded text-[10px] font-bold"
+                            >
+                              Dispatch
+                            </button>
+                          </div>
+                        )}
+                      </td>
 
-                {/* Action Row */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-800">
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-gray-400 font-mono">Assigned Unit:</span>
-                    {incident.assignedTeamId ? (
-                      <span className="px-2 py-0.5 bg-blue-950 text-blue-300 border border-blue-800 rounded font-mono font-bold">
-                        {teams.find(t => t.id === incident.assignedTeamId)?.name || incident.assignedTeamId}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500 italic">None</span>
-                    )}
-                  </div>
+                      {/* Actions */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {inc.verificationStatus === 'PENDING' && (
+                            <>
+                              <button
+                                onClick={() => handleVerify(inc.id)}
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-lg transition shadow flex items-center gap-1"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Verify</span>
+                              </button>
 
-                  <div className="flex items-center gap-2">
-                    {/* Assign Unit Dropdown Toggle */}
-                    <button
-                      onClick={() => setSelectedIncidentForAssignment(selectedIncidentForAssignment === incident.id ? null : incident.id)}
-                      className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1 transition"
-                    >
-                      <UserCheck className="w-3.5 h-3.5 text-blue-400" />
-                      <span>{incident.assignedTeamId ? 'Reassign Team' : 'Assign Team'}</span>
-                    </button>
+                              <button
+                                onClick={() => handleReject(inc.id)}
+                                className="px-2.5 py-1 bg-red-950 hover:bg-red-900 text-red-300 border border-red-800 text-[11px] font-bold rounded-lg transition flex items-center gap-1"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                <span>Reject</span>
+                              </button>
+                            </>
+                          )}
 
-                    {/* Verification Actions */}
-                    {isPending && (
-                      <>
-                        <button
-                          onClick={() => handleVerify(incident.id)}
-                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1 transition shadow"
-                        >
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          <span>Verify Ground Truth</span>
-                        </button>
+                          {inc.verificationStatus === 'VERIFIED' && (
+                            <span className="text-[10px] text-emerald-400 font-mono">
+                              Decision Eligible ✓
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
-                        <button
-                          onClick={() => handleReject(incident.id)}
-                          className="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-300 border border-red-800 text-xs font-semibold rounded-lg transition"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Team Assignment Drawer */}
-                {selectedIncidentForAssignment === incident.id && (
-                  <div className="p-3 bg-gray-950 border border-gray-700 rounded-xl space-y-2 animate-in fade-in">
-                    <label className="text-[11px] font-mono uppercase text-gray-300 font-bold block">
-                      Select Response Unit to Dispatch:
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedTeamId}
-                        onChange={(e) => setSelectedTeamId(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white focus:outline-none"
-                      >
-                        <option value="">-- Choose Unit --</option>
-                        {teams.map(t => (
-                          <option key={t.id} value={t.id}>
-                            {t.name} ({t.category} • {t.status} • {t.personnelCount} personnel)
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        disabled={!selectedTeamId}
-                        onClick={() => handleAssignTeam(incident.id)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition"
-                      >
-                        Confirm Dispatch
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            );
-          })
-        )}
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

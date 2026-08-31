@@ -233,7 +233,8 @@ export const INITIAL_ROADBLOCKS: RoadblockHazard[] = [
     affectedRoadName: 'Sector 4 Riverbank Causeway',
     isPassable: false,
     reason: 'FLOODING',
-    reportedAt: new Date(Date.now() - 50 * 60000).toISOString()
+    reportedAt: new Date(Date.now() - 50 * 60000).toISOString(),
+    verifiedByAuthority: true
   },
   {
     id: 'HAZARD-02',
@@ -243,7 +244,8 @@ export const INITIAL_ROADBLOCKS: RoadblockHazard[] = [
     affectedRoadName: 'High Street Northbound',
     isPassable: false,
     reason: 'FIRE',
-    reportedAt: new Date(Date.now() - 70 * 60000).toISOString()
+    reportedAt: new Date(Date.now() - 70 * 60000).toISOString(),
+    verifiedByAuthority: true
   }
 ];
 

@@ -12,7 +12,7 @@ import {
   Building2, 
   Zap,
   MapPin,
-  Compass
+  Activity
 } from 'lucide-react';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { UserRole } from '../../types/disaster';
@@ -20,9 +20,10 @@ import { DemoBadge, OperationalStatusBadge } from './DemoBadge';
 
 interface NavbarProps {
   onOpenReportModal: () => void;
+  onOpenSimulationLab?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal, onOpenSimulationLab }) => {
   const { 
     currentRole, 
     isEmergencyMode, 
@@ -113,6 +114,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
 
           {/* Action Tools & Toggles */}
           <div className="hidden sm:flex items-center gap-2">
+            {/* Simulation Lab Direct Access */}
+            {onOpenSimulationLab && (
+              <button
+                onClick={onOpenSimulationLab}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 hover:from-blue-800/60 hover:to-indigo-800/60 text-blue-300 text-xs font-mono font-bold rounded-lg border border-blue-600/40 transition shadow"
+              >
+                <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                <span>📊 Simulation Lab</span>
+              </button>
+            )}
+
             {/* Quick Citizen Report Button */}
             <button
               onClick={onOpenReportModal}
@@ -236,20 +248,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal }) => {
             </div>
           </div>
 
-          <div className="pt-2 flex items-center justify-between">
+          <div className="pt-2 flex items-center justify-between gap-2">
             <button
               onClick={onOpenReportModal}
-              className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-amber-300 text-xs font-bold rounded-lg mr-2 text-center"
+              className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-amber-300 text-xs font-bold rounded-lg text-center"
             >
               📍 Report Ground Incident
             </button>
-            <button
-              onClick={() => store.toggleHighContrast()}
-              className="p-2 bg-gray-900 text-gray-300 rounded-lg border border-gray-800"
-              title="High Contrast"
-            >
-              <Eye className="w-4 h-4" />
-            </button>
+            {onOpenSimulationLab && (
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenSimulationLab();
+                }}
+                className="py-2 px-3 bg-blue-900 text-blue-200 text-xs font-bold rounded-lg"
+              >
+                📊 Lab
+              </button>
+            )}
           </div>
         </div>
       )}

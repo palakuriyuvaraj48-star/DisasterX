@@ -1,126 +1,206 @@
 import React, { useState, useEffect } from 'react';
 import { useDisasterStore } from './services/useDisasterStore';
 import { Navbar } from './components/common/Navbar';
-import { OfflineBanner } from './components/common/OfflineBanner';
-import { BroadcastBar } from './components/common/BroadcastBar';
 import { CitizenHome } from './components/citizen/CitizenHome';
 import { EmergencyMode } from './components/citizen/EmergencyMode';
-import { ResponderDashboard } from './components/responder/ResponderDashboard';
 import { CommandCenter } from './components/admin/CommandCenter';
+import { ResponderDashboard } from './components/responder/ResponderDashboard';
 import { IncidentReportModal } from './components/citizen/IncidentReportModal';
 import { ResponseAIChat } from './components/ai/ResponseAIChat';
-import { Bot, MapPin, PhoneCall, ShieldAlert, Zap } from 'lucide-react';
+import { OfflineBanner } from './components/common/OfflineBanner';
+import { RouteChangeBanner } from './components/common/RouteChangeBanner';
+import { ResponseSimulationLab } from './components/simulation/ResponseSimulationLab';
+import { DisasterMap } from './components/map/DisasterMap';
+import { ShelterFinder } from './components/citizen/ShelterFinder';
+import { EvacuationIntelligence } from './components/evacuation/EvacuationIntelligence';
 import { soundEffects } from './services/soundEffects';
 
 export function App() {
-  const { 
-    currentRole, 
-    isEmergencyMode, 
-    isHighContrast, 
-    store 
-  } = useDisasterStore();
-
+  const { currentRole, isEmergencyMode, isHighContrast, store } = useDisasterStore();
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  const [activeCitizenView, setActiveCitizenView] = useState<'HOME' | 'MAP' | 'SHELTERS' | 'EVACUATION' | 'SIMULATION'>('HOME');
 
-  // Register service worker if supported
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => {
-        console.log('SW registration optional notice:', err);
-      });
+    if (isHighContrast) {
+      document.body.classList.add('emergency-high-contrast');
+    } else {
+      document.body.classList.remove('emergency-high-contrast');
     }
-  }, []);
+  }, [isHighContrast]);
+
+  const handleNavigateToMap = () => {
+    setActiveCitizenView('MAP');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateToShelters = () => {
+    setActiveCitizenView('SHELTERS');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateToEvacuation = () => {
+    setActiveCitizenView('EVACUATION');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenSimulationLab = () => {
+    setActiveCitizenView('SIMULATION');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <div className={`min-h-screen flex flex-col ${isHighContrast ? 'bg-black text-white' : 'bg-[#0B0F19] text-gray-100'}`}>
+    <div className="min-h-screen bg-[#0B0F19] text-gray-100 flex flex-col font-sans selection:bg-red-600 selection:text-white">
       
-      {/* Offline Status & Telemetry Sync Banner */}
+      {/* 1. Real-time Dynamic Route Change Notification Banner */}
+      <RouteChangeBanner onViewRoute={handleNavigateToEvacuation} />
+
+      {/* 2. Offline Status Banner */}
       <OfflineBanner />
 
-      {/* High-priority Emergency Broadcast Alert */}
-      <BroadcastBar />
+      {/* 3. Global Navbar */}
+      <Navbar 
+        onOpenReportModal={() => setIsReportModalOpen(true)}
+        onOpenSimulationLab={handleOpenSimulationLab}
+      />
 
-      {/* Main Navigation */}
-      <Navbar onOpenReportModal={() => setIsReportModalOpen(true)} />
-
-      {/* Main Role Content View */}
+      {/* 4. Main Body Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        {/* Full-screen dedicated Emergency Mode */}
         {isEmergencyMode ? (
           <EmergencyMode />
         ) : (
           <>
+            {/* ROLE 1: CITIZEN EXPERIENCE */}
             {currentRole === 'CITIZEN' && (
-              <CitizenHome
-                onOpenReportModal={() => setIsReportModalOpen(true)}
-                onOpenAIChat={() => setIsAIChatOpen(true)}
-              />
+              <div className="space-y-6">
+                
+                {/* Citizen View Sub-navigation */}
+                <div className="flex items-center gap-2 bg-gray-900/90 p-1.5 rounded-2xl border border-gray-800 overflow-x-auto no-scrollbar">
+                  <button
+                    onClick={() => setActiveCitizenView('HOME')}
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                      activeCitizenView === 'HOME'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                    }`}
+                  >
+                    🏠 Citizen Hub
+                  </button>
+
+                  <button
+                    onClick={() => setActiveCitizenView('EVACUATION')}
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                      activeCitizenView === 'EVACUATION'
+                        ? 'bg-cyan-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                    }`}
+                  >
+                    🗺️ Adaptive Evacuation
+                  </button>
+
+                  <button
+                    onClick={() => setActiveCitizenView('MAP')}
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                      activeCitizenView === 'MAP'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                    }`}
+                  >
+                    📍 Tactical Map
+                  </button>
+
+                  <button
+                    onClick={() => setActiveCitizenView('SHELTERS')}
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                      activeCitizenView === 'SHELTERS'
+                        ? 'bg-emerald-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                    }`}
+                  >
+                    🏠 Shelters & Relief
+                  </button>
+
+                  <button
+                    onClick={() => setActiveCitizenView('SIMULATION')}
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                      activeCitizenView === 'SIMULATION'
+                        ? 'bg-gradient-to-r from-red-600 to-amber-600 text-white shadow-lg'
+                        : 'text-amber-400 hover:text-amber-200 hover:bg-gray-800'
+                    }`}
+                  >
+                    📊 Response Simulation Lab
+                  </button>
+                </div>
+
+                {/* Sub-view rendering */}
+                {activeCitizenView === 'HOME' && (
+                  <CitizenHome 
+                    onOpenReportModal={() => setIsReportModalOpen(true)}
+                    onOpenAIChat={() => setIsAIChatOpen(true)}
+                    onNavigateToMap={handleNavigateToMap}
+                    onNavigateToShelters={handleNavigateToShelters}
+                  />
+                )}
+
+                {activeCitizenView === 'EVACUATION' && (
+                  <EvacuationIntelligence />
+                )}
+
+                {activeCitizenView === 'MAP' && (
+                  <div className="h-[620px] rounded-3xl overflow-hidden shadow-2xl border border-gray-800">
+                    <DisasterMap />
+                  </div>
+                )}
+
+                {activeCitizenView === 'SHELTERS' && (
+                  <ShelterFinder />
+                )}
+
+                {activeCitizenView === 'SIMULATION' && (
+                  <ResponseSimulationLab />
+                )}
+
+              </div>
             )}
 
-            {currentRole === 'RESPONDER' && <ResponderDashboard />}
+            {/* ROLE 2: FIELD RESPONDER */}
+            {currentRole === 'RESPONDER' && (
+              <ResponderDashboard />
+            )}
 
-            {currentRole === 'ADMIN' && <CommandCenter />}
+            {/* ROLE 3: GOVERNMENT COMMAND CENTER */}
+            {currentRole === 'ADMIN' && (
+              <CommandCenter />
+            )}
           </>
         )}
+
       </main>
 
-      {/* Floating Action Button for Response AI */}
-      {!isEmergencyMode && (
-        <div className="fixed bottom-6 right-6 z-[1500] flex flex-col items-end gap-3">
-          <button
-            onClick={() => setIsAIChatOpen(true)}
-            className="group flex items-center gap-2.5 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-2xl hover:shadow-blue-500/40 border border-blue-400/40 transition-all hover:scale-105 font-bold text-xs sm:text-sm"
-            aria-label="Open AI Emergency Assistant"
-          >
-            <Bot className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            <span className="hidden sm:inline">Ask Response AI</span>
-          </button>
-        </div>
-      )}
-
-      {/* Incident Report Modal */}
+      {/* 5. Incident Reporting Modal */}
       <IncidentReportModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
       />
 
-      {/* Response AI Assistant Drawer */}
+      {/* 6. Response AI Floating Assistant */}
       <ResponseAIChat
         isOpen={isAIChatOpen}
         onClose={() => setIsAIChatOpen(false)}
-        onNavigateToMap={() => {
-          store.setRole('CITIZEN');
-          const mapEl = document.getElementById('gis-command-map');
-          mapEl?.scrollIntoView({ behavior: 'smooth' });
-        }}
-        onNavigateToShelters={() => {
-          store.setRole('CITIZEN');
-          const shEl = document.getElementById('verified-shelters');
-          shEl?.scrollIntoView({ behavior: 'smooth' });
-        }}
+        onNavigateToMap={handleNavigateToMap}
+        onNavigateToShelters={handleNavigateToShelters}
         onOpenReportModal={() => setIsReportModalOpen(true)}
       />
 
-      {/* Government & Authority Disclaimers Footer */}
-      {!isEmergencyMode && (
-        <footer className="bg-gray-950 border-t border-gray-800 py-8 px-4 text-center text-xs text-gray-500 space-y-3 font-mono">
-          <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-4 text-gray-400">
-            <span className="flex items-center gap-1 font-semibold text-gray-300">
-              <ShieldAlert className="w-4 h-4 text-red-500" />
-              <span>DisasterGuard AI v2.4 (Government Emergency Architecture)</span>
-            </span>
-            <span>•</span>
-            <span>Integrated Emergency: <strong>112</strong></span>
-            <span>•</span>
-            <span>NDRF Hotline: <strong>1078</strong></span>
-            <span>•</span>
-            <span>Medical / Ambulance: <strong>108</strong></span>
-          </div>
-          <p className="text-[11px] text-gray-400">
-            DEMO ENVIRONMENT NOTICE: Simulated disaster feeds and telemetry are displayed for demonstration and testing purposes. In active real-world life emergencies, immediately follow directives issued by your local State/District Disaster Management Authority.
-          </p>
-        </footer>
-      )}
+      {/* 7. Footer */}
+      <footer className="mt-auto border-t border-gray-900 bg-gray-950/80 py-6 text-center text-xs text-gray-500 font-mono">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>Disaster X © 2026 • AI-Powered Adaptive Disaster Response & Management System</span>
+          <span className="text-gray-400">DEMO ENVIRONMENT • Inter-Agency Rapid Response Architecture</span>
+        </div>
+      </footer>
 
     </div>
   );

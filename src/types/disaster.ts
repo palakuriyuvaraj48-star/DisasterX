@@ -20,6 +20,17 @@ export interface Coordinates {
   lng: number;
 }
 
+export interface TrustScoreBreakdown {
+  baseScore: number;
+  independentReportsScore: number;
+  evidenceScore: number;
+  responderConfirmationScore: number;
+  officialSourceScore: number;
+  totalTrustScore: number; // 0 - 100
+  confidenceTier: 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH';
+  isDecisionEligible: boolean; // Only verified or high confidence reports can influence routing
+}
+
 export interface IncidentReport {
   id: string;
   type: DisasterType;
@@ -30,15 +41,19 @@ export interface IncidentReport {
   severity: SeverityLevel;
   verificationStatus: VerificationStatus;
   confidenceScore: number; // 0 - 100
+  trustBreakdown?: TrustScoreBreakdown;
   reportedAt: string; // ISO string
   updatedAt: string;
   reportedBy: string;
   source: 'CITIZEN_REPORT' | 'SATELLITE_FEED' | 'OFFICIAL_DISPATCH' | 'IOT_SENSOR' | 'DRONE_RECON';
+  supportingReportsCount?: number;
+  hasPhotoEvidence?: boolean;
+  responderConfirmed?: boolean;
   estimatedPeopleAffected?: number;
   assignedTeamId?: string;
   mediaUrls?: string[];
   notes?: string[];
-  isHazardBlocked?: boolean; // For adaptive routing detection
+  isHazardBlocked?: boolean;
 }
 
 export interface Shelter {
@@ -81,6 +96,18 @@ export interface RoadblockHazard {
   isPassable: boolean;
   reason: 'FLOODING' | 'DEBRIS' | 'BRIDGE_DAMAGE' | 'FIRE' | 'LANDSLIDE';
   reportedAt: string;
+  verifiedByAuthority: boolean;
+}
+
+export interface RouteConstraintScore {
+  safetyScore: number;         // 0 - 100
+  shelterAvailabilityScore: number; // 0 - 100
+  roadReliabilityScore: number; // 0 - 100
+  responseAccessScore: number; // 0 - 100
+  riskPenalty: number;
+  distancePenalty: number;
+  travelTimePenalty: number;
+  totalCompositeScore: number; // 0 - 100
 }
 
 export interface EvacuationRoute {
@@ -94,8 +121,10 @@ export interface EvacuationRoute {
   status: 'VERIFIED_SAFE' | 'COMPROMISED' | 'BLOCKED' | 'ALTERNATIVE_CALCULATED';
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'IMPASSABLE';
   pathDescription: string;
+  constraintScore?: RouteConstraintScore;
   alternativeRouteId?: string;
   hazardAlert?: string;
+  reasonsForRecommendation?: string[];
 }
 
 export interface ResourceItem {
@@ -146,6 +175,36 @@ export interface DisasterGuide {
   whatToAvoid: string[];
   evacuationTips: string[];
   emergencyContacts: { label: string; number: string }[];
+}
+
+export interface SimulationLabState {
+  disasterType: DisasterType;
+  scenarioName: string;
+  populationAtRisk: number;
+  timeStep: number; // 0, 10, 15, 20
+  isRunning: boolean;
+  isPaused: boolean;
+  mainRoadBlocked: boolean;
+  floodRiskLevel: 'HIGH' | 'CRITICAL';
+  shelter04CapacityPercent: number;
+  staticPlan: {
+    route: string;
+    routeAdaptations: number;
+    finalRouteRisk: string;
+    evacuationTimeMin: number;
+    shelterOverload: string;
+    riskExposureScore: number;
+    performanceScore: number;
+  };
+  adaptivePlan: {
+    route: string;
+    routeAdaptations: number;
+    finalRouteRisk: string;
+    evacuationTimeMin: number;
+    shelterOverload: string;
+    riskExposureScore: number;
+    performanceScore: number;
+  };
 }
 
 export interface ScenarioSimulationState {

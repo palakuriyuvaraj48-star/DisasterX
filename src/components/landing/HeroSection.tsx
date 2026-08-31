@@ -8,9 +8,9 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   Radio, 
-  Activity,
-  Layers,
-  Sparkles
+  Activity, 
+  Layers, 
+  Sparkles 
 } from 'lucide-react';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { DemoBadge, OperationalStatusBadge } from '../common/DemoBadge';
@@ -59,7 +59,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* Supporting Text */}
           <p className="text-base sm:text-lg text-gray-300 font-normal leading-relaxed max-w-2xl">
-            <strong className="text-white font-bold">Disaster X</strong> connects citizens, responders and authorities through AI-guided emergency assistance, verified ground intelligence and adaptive evacuation support.
+            <strong className="text-white font-bold">Disaster X</strong> is an AI-powered, offline-first disaster response platform connecting citizens, responders and authorities through emergency guidance, verified ground intelligence and adaptive evacuation support.
           </p>
 
           {/* Primary & Secondary Call to Actions */}
@@ -68,7 +68,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               onClick={() => store.toggleEmergencyMode(true)}
               className="px-6 py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold text-sm sm:text-base rounded-xl shadow-xl shadow-red-900/40 flex items-center gap-2.5 transition active:scale-95"
             >
-              <span>🆘 Get Emergency Guidance</span>
+              <span>🆘 Get Emergency Help</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 

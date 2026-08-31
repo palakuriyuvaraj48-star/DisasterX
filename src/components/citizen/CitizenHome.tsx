@@ -12,11 +12,15 @@ import { LastMileSection } from '../landing/LastMileSection';
 interface CitizenHomeProps {
   onOpenReportModal: () => void;
   onOpenAIChat: () => void;
+  onNavigateToMap?: () => void;
+  onNavigateToShelters?: () => void;
 }
 
 export const CitizenHome: React.FC<CitizenHomeProps> = ({
   onOpenReportModal,
-  onOpenAIChat
+  onOpenAIChat,
+  onNavigateToMap,
+  onNavigateToShelters
 }) => {
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -39,34 +43,32 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({
       {/* 3. HOW THE PLATFORM WORKS (5-Step Flow) */}
       <PlatformProcess />
 
-      {/* 4. RAPID CITIZEN PLAYBOOK ("Are you in danger?") */}
-      <section id="disaster-playbook">
+      {/* 4. RAPID 10-SECOND DISASTER PLAYBOOKS */}
+      <div id="disaster-playbook">
         <DisasterPlaybook
-          onNavigateToMap={() => scrollToSection('evacuation-intelligence')}
-          onNavigateToShelters={() => scrollToSection('verified-shelters')}
+          onNavigateToMap={onNavigateToMap || (() => scrollToSection('evacuation-intelligence'))}
+          onNavigateToShelters={onNavigateToShelters || (() => scrollToSection('shelter-finder'))}
           onOpenReportModal={onOpenReportModal}
         />
-      </section>
+      </div>
 
-      {/* 5. DEDICATED EVACUATION INTELLIGENCE ("Find the safest way out") */}
-      <section id="evacuation-intelligence">
+      {/* 5. ADAPTIVE EVACUATION INTELLIGENCE (Core Differentiator) */}
+      <div id="evacuation-intelligence">
         <EvacuationIntelligence />
-      </section>
+      </div>
 
-      {/* 6. VERIFIED SHELTERS DIRECTORY */}
-      <section id="verified-shelters">
-        <ShelterFinder
-          onSelectShelterOnMap={() => scrollToSection('evacuation-intelligence')}
-        />
-      </section>
+      {/* 6. NEAREST VERIFIED SHELTERS & RELIEF HUBS */}
+      <div id="shelter-finder">
+        <ShelterFinder />
+      </div>
 
-      {/* 7. COMPARISON STORY (Traditional vs DisasterGuard) */}
+      {/* 7. WHY DISASTER X IS DIFFERENT (Comparison) */}
       <ComparisonStory />
 
-      {/* 8. DIFFERENTIATION (Why this is different) */}
+      {/* 8. 5 INNOVATION PILLARS */}
       <DifferentiationSection />
 
-      {/* 9. BUILT FOR THE LAST MILE */}
+      {/* 9. ZERO-CONNECTIVITY LAST MILE RELIABILITY */}
       <LastMileSection />
 
     </div>

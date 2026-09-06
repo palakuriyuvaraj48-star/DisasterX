@@ -99,6 +99,16 @@ export interface RoadblockHazard {
   verifiedByAuthority: boolean;
 }
 
+export interface RiskZone {
+  id: string;
+  name: string;
+  type: DisasterType;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  coordinates: Coordinates[];
+  description: string;
+  affectedRadiusKm: number;
+}
+
 export interface RouteConstraintScore {
   safetyScore: number;         // 0 - 100
   shelterAvailabilityScore: number; // 0 - 100

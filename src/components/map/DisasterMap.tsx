@@ -4,18 +4,24 @@ import {
   Layers, 
   MapPin, 
   Home, 
-  Cross, 
+  HeartPulse, 
   AlertTriangle, 
   Navigation, 
   Users, 
   Compass, 
-  RefreshCw,
-  Shield,
-  Maximize2
+  RefreshCw, 
+  Shield, 
+  Maximize2,
+  Crosshair,
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { ContextualPanel } from './ContextualPanel';
-import { DISTRICT_CENTER } from '../../data/mockDisasterData';
+import { DISTRICT_CENTER, INITIAL_RISK_ZONES } from '../../data/mockDisasterData';
+import { GoogleDisasterMap } from './GoogleDisasterMap';
+import { isGoogleMapsLoaded, loadGoogleMapsScript, getGoogleMapsApiKey } from '../../services/googleMapsLoader';
+import { soundEffects } from '../../services/soundEffects';
 
 // Fix for default Leaflet icon assets
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -24,15 +30,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
-
-interface MapFilterState {
-  showIncidents: boolean;
-  showShelters: boolean;
-  showHospitals: boolean;
-  showHazards: boolean;
-  showTeams: boolean;
-  showEvacuationRoute: boolean;
-}
 
 export const DisasterMap: React.FC = () => {
   const { 
@@ -43,26 +40,51 @@ export const DisasterMap: React.FC = () => {
     teams, 
     evacuationRoutes,
     activeEvacuationRouteId,
+    riskZones,
     store 
   } = useDisasterStore();
+
+  const [useGoogleMaps, setUseGoogleMaps] = useState<boolean>(false);
+  const [googleMapsReady, setGoogleMapsReady] = useState<boolean>(false);
+  const [isCheckingGoogle, setIsCheckingGoogle] = useState<boolean>(true);
+
+  // Check Google Maps availability on mount
+  useEffect(() => {
+    const checkGoogle = async () => {
+      const hasKey = !!getGoogleMapsApiKey();
+      if (hasKey) {
+        const loaded = await loadGoogleMapsScript();
+        if (loaded && isGoogleMapsLoaded()) {
+          setGoogleMapsReady(true);
+          setUseGoogleMaps(true);
+        }
+      }
+      setIsCheckingGoogle(false);
+    };
+
+    checkGoogle();
+  }, []);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
-  const [filters, setFilters] = useState<MapFilterState>({
+  const [filters, setFilters] = useState({
     showIncidents: true,
     showShelters: true,
     showHospitals: true,
     showHazards: true,
     showTeams: true,
-    showEvacuationRoute: true
+    showEvacuationRoute: true,
+    showRiskZones: true
   });
 
-  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'CRITICAL' | 'VERIFIED' | 'PENDING'>('ALL');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<string | null>(null);
 
-  // Initialize Map
+  // Initialize Leaflet Map
   useEffect(() => {
+    if (useGoogleMaps && googleMapsReady) return;
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
@@ -74,13 +96,11 @@ export const DisasterMap: React.FC = () => {
         attributionControl: false
       });
 
-      // Dark tactical tiles from OpenStreetMap CartoDB DarkMatter
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
         subdomains: 'abcd',
       }).addTo(map);
 
-      // Add Zoom Control at bottom right
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       const markersGroup = L.layerGroup().addTo(map);
@@ -96,279 +116,265 @@ export const DisasterMap: React.FC = () => {
         mapInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [useGoogleMaps, googleMapsReady]);
 
-  // Update Markers & Polylines when state or filters change
+  // Handle Geolocation in Leaflet
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('Geolocation is not supported.');
+      return;
+    }
+
+    setLocationStatus('Locating position...');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setLocationStatus('📍 Location acquired');
+        soundEffects.playVerificationBlip();
+
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([coords.lat, coords.lng], 15);
+        }
+      },
+      (err) => {
+        setLocationStatus('Location access denied. Manual mode active.');
+      },
+      { timeout: 8000 }
+    );
+  };
+
+  // Render Leaflet Markers
   useEffect(() => {
+    if (useGoogleMaps && googleMapsReady) return;
     const map = mapInstanceRef.current;
-    const layerGroup = markersLayerGroupRef.current;
-    if (!map || !layerGroup) return;
+    const group = markersLayerGroupRef.current;
+    if (!map || !group) return;
 
-    layerGroup.clearLayers();
+    group.clearLayers();
 
-    // 1. Render Incidents
+    // 1. Incidents
     if (filters.showIncidents) {
       incidents.forEach((inc) => {
-        if (selectedCategory === 'CRITICAL' && inc.severity !== 'CRITICAL') return;
-        if (selectedCategory === 'VERIFIED' && inc.verificationStatus !== 'VERIFIED') return;
-        if (selectedCategory === 'PENDING' && inc.verificationStatus !== 'PENDING') return;
-
         const isCritical = inc.severity === 'CRITICAL';
         const isVerified = inc.verificationStatus === 'VERIFIED';
-
-        const customIcon = L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `
-            <div class="relative flex items-center justify-center cursor-pointer group" style="width:36px;height:36px;">
-              <div class="${isCritical ? 'pulse-marker-danger' : 'pulse-marker-warning'} flex items-center justify-center text-white font-bold text-[10px]">
-                ${inc.type === 'FLOOD' ? '🌊' : inc.type === 'FIRE' ? '🔥' : inc.type === 'EARTHQUAKE' ? '🌎' : '⚠️'}
-              </div>
-              <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full ${isVerified ? 'bg-emerald-500' : 'bg-amber-500'} border border-white flex items-center justify-center text-[8px] font-bold text-white">
-                ${isVerified ? '✓' : '?'}
-              </div>
+        const iconHtml = `
+          <div class="relative flex items-center justify-center cursor-pointer transform hover:scale-125 transition">
+            <span class="absolute w-7 h-7 rounded-full ${isCritical ? 'bg-red-500/40 animate-ping' : 'bg-amber-500/30'}"></span>
+            <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg border-2 border-white ${
+              isVerified ? (isCritical ? 'bg-red-600' : 'bg-amber-500') : 'bg-gray-600'
+            }">
+              !
             </div>
-          `,
-          iconSize: [36, 36],
-          iconAnchor: [18, 18]
-        });
-
-        const marker = L.marker([inc.coordinates.lat, inc.coordinates.lng], { icon: customIcon });
+          </div>
+        `;
+        const icon = L.divIcon({ html: iconHtml, className: 'custom-incident-marker', iconSize: [28, 28], iconAnchor: [14, 14] });
+        const marker = L.marker([inc.coordinates.lat, inc.coordinates.lng], { icon }).addTo(group);
         marker.on('click', () => {
           store.setSelectedMapItem({ type: 'INCIDENT', id: inc.id });
+          soundEffects.playVerificationBlip();
         });
-        marker.addTo(layerGroup);
       });
     }
 
-    // 2. Render Shelters
+    // 2. Shelters
     if (filters.showShelters) {
       shelters.forEach((shelter) => {
-        const isOpen = shelter.status === 'OPEN';
-        const customIcon = L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `
-            <div class="relative flex items-center justify-center cursor-pointer" style="width:34px;height:34px;">
-              <div class="${isOpen ? 'pulse-marker-safe' : 'pulse-marker-danger'} flex items-center justify-center text-white text-[12px] font-bold">
-                🏠
-              </div>
-              <div class="absolute -top-3 bg-gray-900/90 text-white text-[9px] font-mono px-1 rounded border border-gray-700 whitespace-nowrap">
-                ${shelter.currentOccupancy}/${shelter.totalCapacity}
-              </div>
+        const iconHtml = `
+          <div class="relative flex items-center justify-center cursor-pointer transform hover:scale-110 transition">
+            <div class="w-7 h-7 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-md border border-emerald-400">
+              🏠
             </div>
-          `,
-          iconSize: [34, 34],
-          iconAnchor: [17, 17]
-        });
-
-        const marker = L.marker([shelter.coordinates.lat, shelter.coordinates.lng], { icon: customIcon });
+          </div>
+        `;
+        const icon = L.divIcon({ html: iconHtml, className: 'custom-shelter-marker', iconSize: [28, 28], iconAnchor: [14, 14] });
+        const marker = L.marker([shelter.coordinates.lat, shelter.coordinates.lng], { icon }).addTo(group);
         marker.on('click', () => {
           store.setSelectedMapItem({ type: 'SHELTER', id: shelter.id });
+          soundEffects.playVerificationBlip();
         });
-        marker.addTo(layerGroup);
       });
     }
 
-    // 3. Render Hospitals
-    if (filters.showHospitals) {
-      hospitals.forEach((hosp) => {
-        const customIcon = L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `
-            <div class="flex items-center justify-center cursor-pointer bg-red-700 border-2 border-white rounded-md shadow-md text-white font-bold text-xs" style="width:28px;height:28px;">
-              🏥
-            </div>
-          `,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14]
-        });
-
-        const marker = L.marker([hosp.coordinates.lat, hosp.coordinates.lng], { icon: customIcon });
-        marker.on('click', () => {
-          store.setSelectedMapItem({ type: 'HOSPITAL', id: hosp.id });
-        });
-        marker.addTo(layerGroup);
-      });
-    }
-
-    // 4. Render Roadblocks / Hazards
+    // 3. Hazards / Roadblocks
     if (filters.showHazards) {
-      roadblocks.forEach((hazard) => {
-        const customIcon = L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `
-            <div class="flex items-center justify-center bg-black border-2 border-red-500 rounded-full shadow-lg text-white font-bold text-[12px] animate-pulse" style="width:30px;height:30px;">
-              🚧
+      roadblocks.forEach((rb) => {
+        const iconHtml = `
+          <div class="relative flex items-center justify-center cursor-pointer animate-bounce">
+            <div class="w-7 h-7 rounded-lg bg-red-700 flex items-center justify-center text-white shadow-xl border border-red-500 font-black text-xs">
+              ⛔
             </div>
-          `,
-          iconSize: [30, 30],
-          iconAnchor: [15, 15]
-        });
-
-        const marker = L.marker([hazard.coordinates.lat, hazard.coordinates.lng], { icon: customIcon });
+          </div>
+        `;
+        const icon = L.divIcon({ html: iconHtml, className: 'custom-hazard-marker', iconSize: [28, 28], iconAnchor: [14, 14] });
+        const marker = L.marker([rb.coordinates.lat, rb.coordinates.lng], { icon }).addTo(group);
         marker.on('click', () => {
-          store.setSelectedMapItem({ type: 'HAZARD', id: hazard.id });
+          store.setSelectedMapItem({ type: 'HAZARD', id: rb.id });
+          soundEffects.playEmergencyAlert();
         });
-        marker.addTo(layerGroup);
       });
     }
 
-    // 5. Render Response Teams
-    if (filters.showTeams) {
-      teams.forEach((team) => {
-        const customIcon = L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `
-            <div class="pulse-marker-unit flex items-center justify-center cursor-pointer text-white font-bold text-[10px]" style="width:32px;height:32px;">
-              ${team.category === 'FIRE_RESCUE' ? '🚒' : team.category === 'AMBULANCE' ? '🚑' : '🚤'}
-            </div>
-          `,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16]
-        });
-
-        const marker = L.marker([team.coordinates.lat, team.coordinates.lng], { icon: customIcon });
-        marker.on('click', () => {
-          store.setSelectedMapItem({ type: 'TEAM', id: team.id });
-        });
-        marker.addTo(layerGroup);
-      });
-    }
-
-    // 6. Render Evacuation Routes Polylines
+    // 4. Evacuation Polyline
     if (filters.showEvacuationRoute) {
       evacuationRoutes.forEach((route) => {
-        const isSelected = route.id === activeEvacuationRouteId;
-        const isSafe = route.status === 'VERIFIED_SAFE';
-
+        const isActive = route.id === activeEvacuationRouteId;
+        const isBlocked = route.status === 'BLOCKED' || (activeEvacuationRouteId === 'ROUTE-ADAPTIVE-01' && route.id === 'ROUTE-PRIMARY-01');
         const latLngs = route.waypoints.map(w => [w.lat, w.lng] as [number, number]);
 
-        // Draw polyline
-        const polyline = L.polyline(latLngs, {
-          color: isSafe ? '#10B981' : '#EF4444',
-          weight: isSelected ? 6 : 4,
-          dashArray: isSafe ? undefined : '8, 8',
-          opacity: isSelected ? 0.95 : 0.65
-        });
-
-        polyline.on('click', () => {
-          store.setActiveEvacuationRoute(route.id);
-        });
-
-        polyline.addTo(layerGroup);
+        L.polyline(latLngs, {
+          color: isBlocked ? '#EF4444' : isActive ? '#10B981' : '#6B7280',
+          weight: isActive ? 6 : 3,
+          opacity: isBlocked ? 0.6 : isActive ? 1.0 : 0.4,
+          dashArray: isBlocked ? '8, 8' : undefined
+        }).addTo(group);
       });
     }
 
-  }, [filters, selectedCategory, incidents, shelters, hospitals, roadblocks, teams, evacuationRoutes, activeEvacuationRouteId]);
-
-  return (
-    <div className="relative w-full h-full min-h-[520px] rounded-xl overflow-hidden border border-gray-800 bg-[#0F172A]">
-      
-      {/* Top Map Tactical Control Header */}
-      <div className="absolute top-3 left-3 z-[900] flex flex-wrap items-center gap-2 max-w-[calc(100%-1rem)]">
+    // 5. Risk Zones Polygons
+    if (filters.showRiskZones) {
+      riskZones.forEach((zone) => {
+        const latLngs = zone.coordinates.map(c => [c.lat, c.lng] as [number, number]);
+        const color = zone.riskLevel === 'CRITICAL' ? '#EF4444' : zone.riskLevel === 'HIGH' ? '#F97316' : zone.riskLevel === 'MEDIUM' ? '#EAB308' : '#22C55E';
         
-        {/* Layer Filter Menu */}
-        <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-lg p-1.5 flex items-center gap-1 shadow-xl">
-          <button
-            onClick={() => setFilters(f => ({ ...f, showIncidents: !f.showIncidents }))}
-            className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 transition ${
-              filters.showIncidents ? 'bg-red-600/90 text-white shadow' : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Incidents ({incidents.length})</span>
-          </button>
+        L.polygon(latLngs, {
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.25,
+          weight: 2,
+          dashArray: '5, 5'
+        }).addTo(group).bindPopup(`<b>${zone.name}</b><br>${zone.description}<br><span style="color:${color}">Risk: ${zone.riskLevel}</span>`);
+      });
+    }
 
-          <button
-            onClick={() => setFilters(f => ({ ...f, showShelters: !f.showShelters }))}
-            className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 transition ${
-              filters.showShelters ? 'bg-emerald-600/90 text-white shadow' : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span>Shelters ({shelters.length})</span>
-          </button>
+    // 6. User Location marker
+    if (userLocation) {
+      const iconHtml = `
+        <div class="w-4 h-4 rounded-full bg-cyan-400 border-2 border-white shadow-lg animate-ping"></div>
+      `;
+      const icon = L.divIcon({ html: iconHtml, className: 'user-loc-marker', iconSize: [16, 16], iconAnchor: [8, 8] });
+      L.marker([userLocation.lat, userLocation.lng], { icon }).addTo(group);
+    }
 
-          <button
-            onClick={() => setFilters(f => ({ ...f, showHospitals: !f.showHospitals }))}
-            className={`hidden sm:flex px-2.5 py-1 rounded text-xs font-semibold items-center gap-1 transition ${
-              filters.showHospitals ? 'bg-blue-600/90 text-white shadow' : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            <Cross className="w-3.5 h-3.5" />
-            <span>Hospitals ({hospitals.length})</span>
-          </button>
+  }, [incidents, shelters, hospitals, roadblocks, teams, evacuationRoutes, activeEvacuationRouteId, riskZones, filters, userLocation, useGoogleMaps, googleMapsReady]);
 
-          <button
-            onClick={() => setFilters(f => ({ ...f, showTeams: !f.showTeams }))}
-            className={`hidden md:flex px-2.5 py-1 rounded text-xs font-semibold items-center gap-1 transition ${
-              filters.showTeams ? 'bg-indigo-600/90 text-white shadow' : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Units ({teams.length})</span>
-          </button>
+  // If user selected Google Maps and script is loaded:
+  if (useGoogleMaps && googleMapsReady) {
+    return <GoogleDisasterMap onFallbackToLeaflet={() => setUseGoogleMaps(false)} />;
+  }
 
-          <button
-            onClick={() => setFilters(f => ({ ...f, showEvacuationRoute: !f.showEvacuationRoute }))}
-            className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 transition ${
-              filters.showEvacuationRoute ? 'bg-teal-600/90 text-white shadow' : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            <Navigation className="w-3.5 h-3.5" />
-            <span>Routes</span>
-          </button>
+  // Fallback to Leaflet Map Engine
+  return (
+    <div className="relative w-full h-full bg-[#0B0F19] overflow-hidden rounded-2xl border border-gray-800 shadow-2xl flex flex-col">
+      
+      {/* Top Map Tactical HUD */}
+      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        
+        {/* Left HUD */}
+        <div className="pointer-events-auto bg-gray-950/90 backdrop-blur-md border border-gray-800 px-3.5 py-2 rounded-xl shadow-xl flex items-center gap-2.5 font-mono">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-white tracking-wider">
+                🗺️ DISASTER RESPONSE MAP
+              </span>
+              <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-1.5 py-0.2 rounded font-bold">
+                TACTICAL GIS ONLINE
+              </span>
+            </div>
+            <span className="text-[10px] text-gray-400 font-sans block">
+              Constraint-Aware Evacuation Intelligence Layer
+            </span>
+          </div>
         </div>
 
-        {/* Severity Filter */}
-        <div className="hidden lg:flex bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-lg p-1.5 items-center gap-1 shadow-xl">
+        {/* Right HUD */}
+        <div className="pointer-events-auto flex items-center gap-1.5 bg-gray-950/90 backdrop-blur-md border border-gray-800 p-1 rounded-xl shadow-xl">
           <button
-            onClick={() => setSelectedCategory('ALL')}
-            className={`px-2 py-0.5 rounded text-[11px] font-mono ${selectedCategory === 'ALL' ? 'bg-gray-700 text-white font-bold' : 'text-gray-400'}`}
+            onClick={handleLocateMe}
+            className="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-gray-800 rounded-lg transition"
+            title="Use My Location"
           >
-            ALL
+            <Crosshair className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => setSelectedCategory('CRITICAL')}
-            className={`px-2 py-0.5 rounded text-[11px] font-mono ${selectedCategory === 'CRITICAL' ? 'bg-red-700 text-white font-bold' : 'text-gray-400'}`}
-          >
-            CRITICAL
-          </button>
-          <button
-            onClick={() => setSelectedCategory('VERIFIED')}
-            className={`px-2 py-0.5 rounded text-[11px] font-mono ${selectedCategory === 'VERIFIED' ? 'bg-emerald-700 text-white font-bold' : 'text-gray-400'}`}
-          >
-            VERIFIED
-          </button>
-          <button
-            onClick={() => setSelectedCategory('PENDING')}
-            className={`px-2 py-0.5 rounded text-[11px] font-mono ${selectedCategory === 'PENDING' ? 'bg-amber-700 text-white font-bold' : 'text-gray-400'}`}
-          >
-            PENDING
-          </button>
+
+          {googleMapsReady && (
+            <button
+              onClick={() => setUseGoogleMaps(true)}
+              className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-mono font-bold rounded-lg transition shadow flex items-center gap-1"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Google Maps View</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Recenter & Compass Control */}
-      <div className="absolute bottom-3 left-3 z-[900] flex items-center gap-2">
+      {/* Layer Filters Strip */}
+      <div className="absolute bottom-4 left-4 z-[1000] pointer-events-auto bg-gray-950/90 backdrop-blur-md border border-gray-800 p-2.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-2 text-xs font-mono">
+        <span className="text-[10px] uppercase text-gray-400 font-bold px-1 flex items-center gap-1">
+          <Layers className="w-3.5 h-3.5 text-blue-400" />
+          <span>Layers:</span>
+        </span>
+
         <button
-          onClick={() => {
-            if (mapInstanceRef.current) {
-              mapInstanceRef.current.setView([DISTRICT_CENTER.lat, DISTRICT_CENTER.lng], 13);
-            }
-          }}
-          className="bg-gray-900/90 hover:bg-gray-800 text-gray-300 p-2 rounded-lg border border-gray-700 text-xs flex items-center gap-1.5 shadow-lg transition"
-          title="Reset map view to command center centerpoint"
+          onClick={() => setFilters(prev => ({ ...prev, showIncidents: !prev.showIncidents }))}
+          className={`px-2 py-1 rounded-lg border transition ${
+            filters.showIncidents ? 'bg-red-950/80 text-red-300 border-red-800 font-bold' : 'bg-gray-900 text-gray-500 border-gray-800'
+          }`}
         >
-          <Compass className="w-4 h-4 text-blue-400" />
-          <span className="font-mono text-xs font-semibold">Center Sector</span>
+          📍 Incidents ({incidents.length})
+        </button>
+
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, showShelters: !prev.showShelters }))}
+          className={`px-2 py-1 rounded-lg border transition ${
+            filters.showShelters ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800 font-bold' : 'bg-gray-900 text-gray-500 border-gray-800'
+          }`}
+        >
+          🏠 Shelters ({shelters.length})
+        </button>
+
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, showHazards: !prev.showHazards }))}
+          className={`px-2 py-1 rounded-lg border transition ${
+            filters.showHazards ? 'bg-amber-950/80 text-amber-300 border-amber-800 font-bold' : 'bg-gray-900 text-gray-500 border-gray-800'
+          }`}
+        >
+          🚧 Hazards ({roadblocks.length})
+        </button>
+
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, showRiskZones: !prev.showRiskZones }))}
+          className={`px-2 py-1 rounded-lg border transition ${
+            filters.showRiskZones ? 'bg-purple-950/80 text-purple-300 border-purple-800 font-bold' : 'bg-gray-900 text-gray-500 border-gray-800'
+          }`}
+        >
+          🎯 Risk Zones ({riskZones.length})
+        </button>
+
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, showEvacuationRoute: !prev.showEvacuationRoute }))}
+          className={`px-2 py-1 rounded-lg border transition ${
+            filters.showEvacuationRoute ? 'bg-blue-950/80 text-blue-300 border-blue-800 font-bold' : 'bg-gray-900 text-gray-500 border-gray-800'
+          }`}
+        >
+          🗺️ Routes
         </button>
       </div>
 
-      {/* Actual Map Container */}
-      <div ref={mapContainerRef} className="w-full h-full" />
+      {locationStatus && (
+        <div className="absolute top-16 left-3 z-[1000] bg-gray-900/90 border border-gray-700 text-cyan-300 text-[11px] font-mono px-3 py-1.5 rounded-xl shadow-lg">
+          {locationStatus}
+        </div>
+      )}
 
-      {/* Slide-out Contextual Panel on Marker Click */}
+      {/* Leaflet Container */}
+      <div ref={mapContainerRef} className="w-full h-full flex-1" />
+
+      {/* Contextual Side Panel for Selected Marker */}
       <ContextualPanel />
+
     </div>
   );
 };

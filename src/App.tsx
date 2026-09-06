@@ -3,23 +3,32 @@ import { useDisasterStore } from './services/useDisasterStore';
 import { Navbar } from './components/common/Navbar';
 import { CitizenHome } from './components/citizen/CitizenHome';
 import { EmergencyMode } from './components/citizen/EmergencyMode';
+import { EmergencyFab } from './components/citizen/EmergencyFab';
+import { BottomNav } from './components/citizen/BottomNav';
+import { AlertsScreen } from './components/citizen/AlertsScreen';
 import { CommandCenter } from './components/admin/CommandCenter';
+import { AIRecommendations } from './components/admin/AIRecommendations';
 import { ResponderDashboard } from './components/responder/ResponderDashboard';
 import { IncidentReportModal } from './components/citizen/IncidentReportModal';
 import { ResponseAIChat } from './components/ai/ResponseAIChat';
 import { OfflineBanner } from './components/common/OfflineBanner';
 import { RouteChangeBanner } from './components/common/RouteChangeBanner';
+import { DataFreshnessIndicator } from './components/common/DataFreshnessIndicator';
 import { ResponseSimulationLab } from './components/simulation/ResponseSimulationLab';
 import { DisasterMap } from './components/map/DisasterMap';
 import { ShelterFinder } from './components/citizen/ShelterFinder';
+import { ProfileScreen } from './components/citizen/ProfileScreen';
 import { EvacuationIntelligence } from './components/evacuation/EvacuationIntelligence';
 import { soundEffects } from './services/soundEffects';
+
+type CitizenTab = 'HOME' | 'MAP' | 'ALERTS' | 'AI' | 'PROFILE' | 'EVACUATION' | 'SHELTERS' | 'SIMULATION';
 
 export function App() {
   const { currentRole, isEmergencyMode, isHighContrast, store } = useDisasterStore();
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
-  const [activeCitizenView, setActiveCitizenView] = useState<'HOME' | 'MAP' | 'SHELTERS' | 'EVACUATION' | 'SIMULATION'>('HOME');
+  const [activeCitizenView, setActiveCitizenView] = useState<CitizenTab>('HOME');
+  const [useMobileNav, setUseMobileNav] = useState(false);
 
   useEffect(() => {
     if (isHighContrast) {
@@ -31,22 +40,40 @@ export function App() {
 
   const handleNavigateToMap = () => {
     setActiveCitizenView('MAP');
+    setUseMobileNav(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNavigateToShelters = () => {
     setActiveCitizenView('SHELTERS');
+    setUseMobileNav(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNavigateToEvacuation = () => {
     setActiveCitizenView('EVACUATION');
+    setUseMobileNav(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleOpenSimulationLab = () => {
     setActiveCitizenView('SIMULATION');
+    setUseMobileNav(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBottomNavChange = (tab: 'HOME' | 'MAP' | 'ALERTS' | 'AI' | 'PROFILE') => {
+    setActiveCitizenView(tab);
+    setUseMobileNav(true);
+    if (tab === 'AI') {
+      setIsAIChatOpen(true);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenEmergency = () => {
+    store.toggleEmergencyMode(true);
+    soundEffects.playEmergencyAlert();
   };
 
   return (
@@ -74,75 +101,23 @@ export function App() {
           <>
             {/* ROLE 1: CITIZEN EXPERIENCE */}
             {currentRole === 'CITIZEN' && (
-              <div className="space-y-6">
-                
-                {/* Citizen View Sub-navigation */}
-                <div className="flex items-center gap-2 bg-gray-900/90 p-1.5 rounded-2xl border border-gray-800 overflow-x-auto no-scrollbar">
-                  <button
-                    onClick={() => setActiveCitizenView('HOME')}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
-                      activeCitizenView === 'HOME'
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-                    }`}
-                  >
-                    🏠 Citizen Hub
-                  </button>
+              <div className={useMobileNav ? 'pb-24' : ''}>
+                <DataFreshnessIndicator />
 
-                  <button
-                    onClick={() => setActiveCitizenView('EVACUATION')}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
-                      activeCitizenView === 'EVACUATION'
-                        ? 'bg-cyan-600 text-white shadow-lg'
-                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-                    }`}
-                  >
-                    🗺️ Adaptive Evacuation
-                  </button>
-
-                  <button
-                    onClick={() => setActiveCitizenView('MAP')}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
-                      activeCitizenView === 'MAP'
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-                    }`}
-                  >
-                    📍 Tactical Map
-                  </button>
-
-                  <button
-                    onClick={() => setActiveCitizenView('SHELTERS')}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
-                      activeCitizenView === 'SHELTERS'
-                        ? 'bg-emerald-600 text-white shadow-lg'
-                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-                    }`}
-                  >
-                    🏠 Shelters & Relief
-                  </button>
-
-                  <button
-                    onClick={() => setActiveCitizenView('SIMULATION')}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
-                      activeCitizenView === 'SIMULATION'
-                        ? 'bg-gradient-to-r from-red-600 to-amber-600 text-white shadow-lg'
-                        : 'text-amber-400 hover:text-amber-200 hover:bg-gray-800'
-                    }`}
-                  >
-                    📊 Response Simulation Lab
-                  </button>
-                </div>
+                {/* Mobile Bottom Nav (shown when using bottom tabs) */}
+                {useMobileNav && <BottomNav activeTab={activeCitizenView as any} onTabChange={handleBottomNavChange} onOpenEmergency={handleOpenEmergency} />}
 
                 {/* Sub-view rendering */}
                 {activeCitizenView === 'HOME' && (
                   <CitizenHome 
                     onOpenReportModal={() => setIsReportModalOpen(true)}
                     onOpenAIChat={() => setIsAIChatOpen(true)}
-                    onNavigateToMap={handleNavigateToMap}
-                    onNavigateToShelters={handleNavigateToShelters}
+                    onNavigateToMap={() => setActiveCitizenView('MAP')}
+                    onNavigateToShelters={() => setActiveCitizenView('SHELTERS')}
                   />
                 )}
+
+                {activeCitizenView === 'ALERTS' && <AlertsScreen />}
 
                 {activeCitizenView === 'EVACUATION' && (
                   <EvacuationIntelligence />
@@ -162,6 +137,70 @@ export function App() {
                   <ResponseSimulationLab />
                 )}
 
+                {activeCitizenView === 'PROFILE' && (
+                  <ProfileScreen />
+                )}
+
+                {/* Desktop sub-navigation (hidden on mobile when bottom nav is active) */}
+                {!useMobileNav && (
+                  <div className="flex items-center gap-2 bg-gray-900/90 p-1.5 rounded-2xl border border-gray-800 overflow-x-auto no-scrollbar">
+                    <button
+                      onClick={() => setActiveCitizenView('HOME')}
+                      className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                        activeCitizenView === 'HOME'
+                          ? 'bg-blue-600 text-white shadow-lg'
+                          : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                      }`}
+                    >
+                      🏠 Citizen Hub
+                    </button>
+
+                    <button
+                      onClick={() => setActiveCitizenView('EVACUATION')}
+                      className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                        activeCitizenView === 'EVACUATION'
+                          ? 'bg-cyan-600 text-white shadow-lg'
+                          : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                      }`}
+                    >
+                      🗺️ Adaptive Evacuation
+                    </button>
+
+                    <button
+                      onClick={() => setActiveCitizenView('MAP')}
+                      className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                        activeCitizenView === 'MAP'
+                          ? 'bg-blue-600 text-white shadow-lg'
+                          : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                      }`}
+                    >
+                      📍 Tactical Map
+                    </button>
+
+                    <button
+                      onClick={() => setActiveCitizenView('SHELTERS')}
+                      className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                        activeCitizenView === 'SHELTERS'
+                          ? 'bg-emerald-600 text-white shadow-lg'
+                          : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+                      }`}
+                    >
+                      🏠 Shelters & Relief
+                    </button>
+
+                    <button
+                      onClick={() => setActiveCitizenView('SIMULATION')}
+                      className={`px-4 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition ${
+                        activeCitizenView === 'SIMULATION'
+                          ? 'bg-gradient-to-r from-red-600 to-amber-600 text-white shadow-lg'
+                          : 'text-amber-400 hover:text-amber-200 hover:bg-gray-800'
+                      }`}
+                    >
+                      📊 Response Simulation Lab
+                    </button>
+                  </div>
+                )}
+
               </div>
             )}
 
@@ -172,7 +211,10 @@ export function App() {
 
             {/* ROLE 3: GOVERNMENT COMMAND CENTER */}
             {currentRole === 'ADMIN' && (
-              <CommandCenter />
+              <div className="space-y-6">
+                <CommandCenter />
+                <AIRecommendations />
+              </div>
             )}
           </>
         )}
@@ -201,6 +243,9 @@ export function App() {
           <span className="text-gray-400">DEMO ENVIRONMENT • Inter-Agency Rapid Response Architecture</span>
         </div>
       </footer>
+
+      {/* 8. Persistent Emergency FAB */}
+      {!isEmergencyMode && !useMobileNav && <EmergencyFab />}
 
     </div>
   );

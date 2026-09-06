@@ -7,7 +7,8 @@ import {
   ResourceItem, 
   ResponseTeam, 
   AuditLogEntry, 
-  EvacuationRoute, 
+  EvacuationRoute,
+  RiskZone,
   ScenarioSimulationState,
   DisasterType,
   SeverityLevel
@@ -20,8 +21,10 @@ import {
   INITIAL_RESOURCES, 
   INITIAL_TEAMS, 
   INITIAL_AUDIT_LOGS, 
-  INITIAL_EVACUATION_ROUTES 
+  INITIAL_EVACUATION_ROUTES,
+  INITIAL_RISK_ZONES
 } from '../data/mockDisasterData';
+import { TrustEngine } from './trustEngine';
 
 const STORAGE_KEY = 'disasterguard_state_v1';
 
@@ -43,6 +46,7 @@ export interface DisasterStoreState {
   teams: ResponseTeam[];
   auditLogs: AuditLogEntry[];
   evacuationRoutes: EvacuationRoute[];
+  riskZones: RiskZone[];
   
   // Selected map entity for contextual slide-out
   selectedMapItem: {
@@ -126,6 +130,7 @@ export class DisasterStore {
       teams: INITIAL_TEAMS,
       auditLogs: INITIAL_AUDIT_LOGS,
       evacuationRoutes: INITIAL_EVACUATION_ROUTES,
+      riskZones: INITIAL_RISK_ZONES,
       selectedMapItem: null,
       activeEvacuationRouteId: 'ROUTE-ADAPTIVE-01',
       simulation: {
@@ -228,8 +233,16 @@ export class DisasterStore {
     severity: SeverityLevel;
     estimatedPeopleAffected?: number;
     reporterName?: string;
+    hasPhotoEvidence?: boolean;
   }): IncidentReport {
     const newId = `INC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const trustBreakdown = TrustEngine.calculateTrustScore({
+      source: 'CITIZEN_REPORT',
+      supportingReportsCount: 1,
+      hasPhotoEvidence: data.hasPhotoEvidence || false,
+      verificationStatus: 'PENDING'
+    });
+
     const newIncident: IncidentReport = {
       id: newId,
       type: data.type,
@@ -239,12 +252,14 @@ export class DisasterStore {
       coordinates: data.coordinates || { lat: 13.0827 + (Math.random() - 0.5) * 0.03, lng: 80.2707 + (Math.random() - 0.5) * 0.03 },
       severity: data.severity,
       verificationStatus: 'PENDING',
-      confidenceScore: 68,
+      confidenceScore: trustBreakdown.totalTrustScore,
+      trustBreakdown,
       reportedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       reportedBy: data.reporterName || 'Citizen Mobile App',
       source: 'CITIZEN_REPORT',
       estimatedPeopleAffected: data.estimatedPeopleAffected || 10,
+      hasPhotoEvidence: data.hasPhotoEvidence || false,
       notes: ['Awaiting authority review']
     };
 
@@ -276,10 +291,19 @@ export class DisasterStore {
   public verifyIncident(incidentId: string, officerName = 'Command Duty Officer'): void {
     const updated = this.state.incidents.map(inc => {
       if (inc.id === incidentId) {
+        const trustBreakdown = TrustEngine.calculateTrustScore({
+          source: inc.source,
+          supportingReportsCount: inc.supportingReportsCount || 1,
+          hasPhotoEvidence: inc.hasPhotoEvidence,
+          responderConfirmed: true,
+          verificationStatus: 'VERIFIED'
+        });
         return {
           ...inc,
           verificationStatus: 'VERIFIED' as const,
-          confidenceScore: 98,
+          confidenceScore: trustBreakdown.totalTrustScore,
+          trustBreakdown,
+          responderConfirmed: true,
           updatedAt: new Date().toISOString(),
           notes: [...(inc.notes || []), `Verified by ${officerName} at ${new Date().toLocaleTimeString()}`]
         };
@@ -309,10 +333,17 @@ export class DisasterStore {
   public rejectIncident(incidentId: string, reason = 'False alarm / Duplicate', officerName = 'Command Duty Officer'): void {
     const updated = this.state.incidents.map(inc => {
       if (inc.id === incidentId) {
+        const trustBreakdown = TrustEngine.calculateTrustScore({
+          source: inc.source,
+          supportingReportsCount: inc.supportingReportsCount || 1,
+          hasPhotoEvidence: inc.hasPhotoEvidence,
+          verificationStatus: 'REJECTED'
+        });
         return {
           ...inc,
           verificationStatus: 'REJECTED' as const,
-          confidenceScore: 10,
+          confidenceScore: trustBreakdown.totalTrustScore,
+          trustBreakdown,
           updatedAt: new Date().toISOString(),
           notes: [...(inc.notes || []), `Rejected: ${reason} (by ${officerName})`]
         };

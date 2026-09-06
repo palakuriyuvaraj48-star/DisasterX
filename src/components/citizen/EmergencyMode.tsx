@@ -3,14 +3,11 @@ import {
   AlertOctagon, 
   ShieldAlert, 
   Navigation, 
-  Home, 
   PhoneCall, 
-  AlertTriangle, 
   Volume2, 
-  ArrowLeft,
   CheckCircle,
   XCircle,
-  HelpCircle
+  Siren
 } from 'lucide-react';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { DISASTER_GUIDES } from '../../data/disasterGuides';
@@ -23,16 +20,32 @@ export const EmergencyMode: React.FC = () => {
     shelters, 
     evacuationRoutes, 
     activeEvacuationRouteId, 
-    store 
+    store,
+    broadcastAlert
   } = useDisasterStore();
 
   const [activeDisaster, setActiveDisaster] = useState<DisasterType>(selectedDisaster || 'FLOOD');
+  const [sosActive, setSosActive] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const guide = DISASTER_GUIDES[activeDisaster] || DISASTER_GUIDES.FLOOD;
   const nearestOpenShelter = shelters.find(s => s.status === 'OPEN') || shelters[0];
   const activeRoute = evacuationRoutes.find(r => r.id === activeEvacuationRouteId) || evacuationRoutes[1];
 
+  const handleSOS = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate([300, 100, 300, 100, 300]);
+    }
+    soundEffects.playEmergencyAlert();
+    setSosActive(true);
+    navigator.geolocation?.getCurrentPosition(
+      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {}
+    );
+    setTimeout(() => setSosActive(false), 4000);
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white p-4 sm:p-6 font-sans select-none pb-20">
+    <div className="min-h-screen bg-black text-white p-4 sm:p-6 font-sans select-none pb-24">
       
       {/* Top Banner */}
       <div className="max-w-4xl mx-auto space-y-6">
@@ -57,6 +70,52 @@ export const EmergencyMode: React.FC = () => {
           >
             ✕ Exit SOS
           </button>
+        </div>
+
+        {/* Current Critical Alert Banner */}
+        {broadcastAlert && broadcastAlert.type === 'CRITICAL' && (
+          <div className="bg-red-950/90 border-2 border-red-500 rounded-2xl p-4 shadow-2xl animate-pulse">
+            <div className="flex items-center gap-2 text-red-400 font-black text-sm mb-2">
+              <Siren className="w-5 h-5 animate-bounce" />
+              <span>CRITICAL ALERT IN YOUR AREA</span>
+            </div>
+            <p className="text-white font-bold text-sm mb-2">{broadcastAlert.message}</p>
+            <div className="flex items-center gap-2 text-[11px] text-gray-300">
+              <span className="font-mono">Issued: {broadcastAlert.timestamp}</span>
+              <button
+                onClick={() => soundEffects.playEmergencyAlert()}
+                className="p-1.5 bg-red-800 hover:bg-red-700 rounded-lg transition"
+                title="Replay alert audio"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* SOS Action Button */}
+        <div className="bg-red-950/80 border-4 border-red-500 rounded-3xl p-6 shadow-2xl">
+          <button
+            onClick={handleSOS}
+            disabled={sosActive}
+            className={`w-full py-8 rounded-2xl font-black text-2xl flex flex-col items-center justify-center gap-3 transition active:scale-95 border-4 border-white shadow-2xl ${
+              sosActive
+                ? 'bg-emerald-600 text-white'
+                : 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
+            }`}
+          >
+            <span className="text-4xl">{sosActive ? '✅' : '🆘'}</span>
+            <span className="tracking-wider">{sosActive ? 'SOS TRANSMITTED' : 'SEND SOS - TAP NOW'}</span>
+            <span className="text-xs font-normal opacity-80">
+              {sosActive ? 'Help is being notified' : 'Alerts 5 contacts + emergency services'}
+            </span>
+          </button>
+          {sosActive && (
+            <div className="mt-3 text-center text-xs text-emerald-300 font-mono animate-pulse">
+              📡 Transmitting location to emergency services & 5 contacts...
+              {userLocation && <span className="block text-gray-400 mt-1">📍 {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</span>}
+            </div>
+          )}
         </div>
 
         {/* Quick Disaster Selector in Emergency Mode */}

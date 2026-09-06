@@ -6,10 +6,6 @@ import {
   ShieldCheck, 
   AlertTriangle, 
   CheckCircle2, 
-  Users, 
-  Navigation, 
-  Bed, 
-  Activity, 
   Clock, 
   Layers
 } from 'lucide-react';
@@ -120,6 +116,59 @@ export const ContextualPanel: React.FC = () => {
                 <span className="font-bold text-white text-xs">{itemData.source}</span>
               </div>
             </div>
+
+            {/* Trust / Verification Breakdown */}
+            {itemData.trustBreakdown && (
+              <div className="bg-gray-950/80 p-3 rounded-xl border border-gray-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase text-gray-400 font-bold">Verification Breakdown</span>
+                  <span className="text-xs font-bold text-emerald-400">{itemData.trustBreakdown.totalTrustScore}% Confidence</span>
+                </div>
+                <div className="space-y-1.5 text-[11px]">
+                  {itemData.trustBreakdown.baseScore > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Base Report Score</span>
+                      <span className="font-mono text-white">+{itemData.trustBreakdown.baseScore}</span>
+                    </div>
+                  )}
+                  {itemData.trustBreakdown.independentReportsScore > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Multiple Citizen Reports</span>
+                      <span className="font-mono text-emerald-400">+{itemData.trustBreakdown.independentReportsScore}</span>
+                    </div>
+                  )}
+                  {itemData.trustBreakdown.evidenceScore > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Photo / Video Evidence</span>
+                      <span className="font-mono text-blue-400">+{itemData.trustBreakdown.evidenceScore}</span>
+                    </div>
+                  )}
+                  {itemData.trustBreakdown.responderConfirmationScore > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Responder / Authority Confirmation</span>
+                      <span className="font-mono text-amber-400">+{itemData.trustBreakdown.responderConfirmationScore}</span>
+                    </div>
+                  )}
+                  {itemData.trustBreakdown.officialSourceScore > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Official Source (IoT / Satellite)</span>
+                      <span className="font-mono text-purple-400">+{itemData.trustBreakdown.officialSourceScore}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="pt-1.5 border-t border-gray-800">
+                  <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        itemData.trustBreakdown.totalTrustScore >= 80 ? 'bg-emerald-500' :
+                        itemData.trustBreakdown.totalTrustScore >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${itemData.trustBreakdown.totalTrustScore}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Quick Admin Actions if user is Admin / Responder */}
             {(currentRole === 'ADMIN' || currentRole === 'RESPONDER') && (

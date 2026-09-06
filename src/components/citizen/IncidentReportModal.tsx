@@ -6,11 +6,11 @@ import {
   CheckCircle2, 
   Camera, 
   Upload, 
-  Clock, 
-  ShieldCheck,
+  Clock,
   ChevronRight,
   ChevronLeft,
-  Users
+  Users,
+  Brain
 } from 'lucide-react';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { DisasterType, SeverityLevel } from '../../types/disaster';
@@ -31,11 +31,18 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({ isOpen
   const [locationName, setLocationName] = useState('');
   const [severity, setSeverity] = useState<SeverityLevel>('HIGH');
   const [peopleAffected, setPeopleAffected] = useState<number>(10);
-  const [evidenceNote, setEvidenceNote] = useState('');
+  const [photoAttached, setPhotoAttached] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedReportId, setSubmittedReportId] = useState<string | null>(null);
+  const [aiConfidence, setAiConfidence] = useState<number | null>(null);
 
   if (!isOpen) return null;
+
+  const simulatePhotoAnalysis = () => {
+    setPhotoAttached(true);
+    soundEffects.playVerificationBlip();
+    alert('Photo attached. AI will analyze water level, damage, and people present for verification.');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,14 +56,17 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({ isOpen
         locationName: locationName || 'District Urban Sector 3',
         severity,
         estimatedPeopleAffected: Number(peopleAffected) || 5,
-        reporterName: 'Verified Citizen (App User)'
+        reporterName: 'Verified Citizen (App User)',
+        hasPhotoEvidence: photoAttached
       });
 
+      const confidence = created.confidenceScore || 68;
+      setAiConfidence(confidence);
       soundEffects.playVerificationBlip();
       setSubmittedReportId(created.id);
       setIsSubmitting(false);
       setStep(5); // Success state
-    }, 600);
+    }, 800);
   };
 
   const handleResetAndClose = () => {
@@ -65,6 +75,8 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({ isOpen
     setDescription('');
     setLocationName('');
     setSubmittedReportId(null);
+    setAiConfidence(null);
+    setPhotoAttached(false);
     onClose();
   };
 
@@ -285,13 +297,47 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({ isOpen
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-mono uppercase text-gray-300 font-bold mb-1.5">
-                  Optional Ground Evidence (Photo / Video Description)
+                  Optional Ground Evidence (Photo / Video)
                 </label>
-                <div className="border-2 border-dashed border-gray-700 rounded-xl p-4 text-center bg-gray-950/40 hover:border-gray-600 cursor-pointer transition">
-                  <Camera className="w-8 h-8 text-gray-400 mx-auto mb-1.5" />
-                  <p className="text-xs text-gray-300 font-semibold">Tap to attach photo or camera snapshot</p>
-                  <p className="text-[10px] text-gray-500">Supports offline caching and automatic sync</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={simulatePhotoAnalysis}
+                    className={`p-4 rounded-xl border-2 text-center transition ${
+                      photoAttached
+                        ? 'bg-emerald-950 border-emerald-500 text-emerald-300'
+                        : 'border-dashed border-gray-700 bg-gray-950/40 hover:border-gray-600 text-gray-300'
+                    }`}
+                  >
+                    <Camera className="w-6 h-6 mx-auto mb-1.5" />
+                    <p className="text-xs font-semibold">Take Photo</p>
+                    {photoAttached && (
+                      <div className="flex items-center justify-center gap-1 text-emerald-400 mt-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span className="text-[10px]">Attached</span>
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={simulatePhotoAnalysis}
+                    className="p-4 rounded-xl border-2 border-dashed border-gray-700 bg-gray-950/40 hover:border-gray-600 text-gray-300 text-center transition"
+                  >
+                    <Upload className="w-6 h-6 mx-auto mb-1.5" />
+                    <p className="text-xs font-semibold">Upload Photo</p>
+                    <p className="text-[10px] text-gray-500 mt-1">AI analysis enabled</p>
+                  </button>
                 </div>
+              </div>
+
+              <div className="bg-blue-950/30 border border-blue-800/60 p-3 rounded-xl text-xs text-blue-200">
+                <div className="flex items-center gap-1.5 font-bold mb-1">
+                  <Brain className="w-3.5 h-3.5 text-blue-400" />
+                  <span>AI-Powered Verification</span>
+                </div>
+                <p className="text-[11px] text-blue-200/80">
+                  Photo analysis extracts water level, damaged structures, and people count. Confidence score calculated automatically.
+                </p>
               </div>
 
               <div className="bg-amber-950/30 border border-amber-800/60 p-3 rounded-xl text-xs text-amber-200">
@@ -344,6 +390,26 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({ isOpen
                   Transmitted to Disaster Command Center. Responders will verify ground telemetry and assign rescue teams.
                 </p>
               </div>
+
+              {aiConfidence !== null && (
+                <div className="bg-blue-950/50 border border-blue-600/80 p-3.5 rounded-xl text-xs text-blue-200 max-w-sm mx-auto space-y-1">
+                  <div className="font-bold flex items-center justify-center gap-1 text-blue-300">
+                    <Brain className="w-3.5 h-3.5" />
+                    <span>AI Confidence Score: {aiConfidence}%</span>
+                  </div>
+                  <p className="text-[11px] text-blue-200/80">
+                    Based on: source type, evidence quality, and independent corroboration.
+                  </p>
+                  <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden mt-1">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        aiConfidence >= 80 ? 'bg-emerald-500' : aiConfidence >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${aiConfidence}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="pt-3">
                 <button

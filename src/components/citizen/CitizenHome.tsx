@@ -8,6 +8,7 @@ import { ShelterFinder } from './ShelterFinder';
 import { ComparisonStory } from '../landing/ComparisonStory';
 import { DifferentiationSection } from '../landing/DifferentiationSection';
 import { LastMileSection } from '../landing/LastMileSection';
+import { HomeSafetyStatus } from './HomeSafetyStatus';
 
 interface CitizenHomeProps {
   onOpenReportModal: () => void;
@@ -30,6 +31,9 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({
   return (
     <div className="space-y-16 pb-16">
       
+      {/* Safety Status Widget */}
+      <HomeSafetyStatus />
+
       {/* 1. HERO SECTION (5-10s Immediate Comprehension) */}
       <HeroSection
         onExploreIntelligence={() => scrollToSection('evacuation-intelligence')}

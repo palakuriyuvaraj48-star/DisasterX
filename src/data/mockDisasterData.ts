@@ -1,7 +1,80 @@
-import { IncidentReport, Shelter, Hospital, RoadblockHazard, ResourceItem, ResponseTeam, AuditLogEntry, EvacuationRoute } from '../types/disaster';
+import { IncidentReport, Shelter, Hospital, RoadblockHazard, ResourceItem, ResponseTeam, AuditLogEntry, EvacuationRoute, RiskZone } from '../types/disaster';
 
 // Primary Coordinates centered around an urban/suburban district with river & coastal topography (e.g. 13.0827, 80.2707)
 export const DISTRICT_CENTER = { lat: 13.0827, lng: 80.2707 };
+
+export const INITIAL_RISK_ZONES: RiskZone[] = [
+  {
+    id: 'RISK-FLOOD-01',
+    name: 'Sector 4 Critical Flood Zone',
+    type: 'FLOOD',
+    riskLevel: 'CRITICAL',
+    coordinates: [
+      { lat: 13.0780, lng: 80.2560 },
+      { lat: 13.0795, lng: 80.2610 },
+      { lat: 13.0760, lng: 80.2620 },
+      { lat: 13.0745, lng: 80.2570 }
+    ],
+    description: 'Active flooding with 4.8ft water depth. Impassable for all vehicles.',
+    affectedRadiusKm: 1.2
+  },
+  {
+    id: 'RISK-FLOOD-02',
+    name: 'North Bridge Approach Flood',
+    type: 'FLOOD',
+    riskLevel: 'HIGH',
+    coordinates: [
+      { lat: 13.0970, lng: 80.2530 },
+      { lat: 13.1005, lng: 80.2570 },
+      { lat: 13.0990, lng: 80.2600 },
+      { lat: 13.0955, lng: 80.2560 }
+    ],
+    description: 'Water overtopping causeway approach. Pedestrian access restricted.',
+    affectedRadiusKm: 0.8
+  },
+  {
+    id: 'RISK-FIRE-01',
+    name: 'High Street Fire Hazard Zone',
+    type: 'FIRE',
+    riskLevel: 'HIGH',
+    coordinates: [
+      { lat: 13.0895, lng: 80.2790 },
+      { lat: 13.0925, lng: 80.2825 },
+      { lat: 13.0910, lng: 80.2845 },
+      { lat: 13.0880, lng: 80.2810 }
+    ],
+    description: 'Structural fire with dense smoke. 200m exclusion zone active.',
+    affectedRadiusKm: 0.6
+  },
+  {
+    id: 'RISK-LANDSIDE-01',
+    name: 'Valley Link Road Landslide',
+    type: 'LANDSLIDE',
+    riskLevel: 'MEDIUM',
+    coordinates: [
+      { lat: 13.0630, lng: 80.2430 },
+      { lat: 13.0670, lng: 80.2470 },
+      { lat: 13.0650, lng: 80.2490 },
+      { lat: 13.0610, lng: 80.2450 }
+    ],
+    description: 'Mudslide debris blocking both lanes. Minor aftershock risk.',
+    affectedRadiusKm: 0.5
+  },
+  {
+    id: 'RISK-FLOOD-03',
+    name: 'Central Bus Terminus Waterlogging',
+    type: 'FLOOD',
+    riskLevel: 'MEDIUM',
+    coordinates: [
+      { lat: 13.0825, lng: 80.2730 },
+      { lat: 13.0855, lng: 80.2770 },
+      { lat: 13.0840, lng: 80.2790 },
+      { lat: 13.0810, lng: 80.2750 }
+    ],
+    description: 'Moderate waterlogging. Traffic slow. Pedestrian movement possible with caution.',
+    affectedRadiusKm: 0.4
+  }
+];
 
 export const INITIAL_INCIDENTS: IncidentReport[] = [
   {

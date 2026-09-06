@@ -2,16 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Bot, 
   Send, 
-  Sparkles, 
-  ShieldAlert, 
-  X, 
-  CheckCircle2, 
-  ChevronRight, 
-  MapPin, 
-  Phone, 
-  Home, 
-  Navigation,
-  Building2
+  Mic, 
+  MicOff, 
+  X
 } from 'lucide-react';
 import { aiService, AIMessage, EMERGENCY_QUICK_CHIPS } from '../../services/aiService';
 import { soundEffects } from '../../services/soundEffects';
@@ -41,11 +34,48 @@ export const ResponseAIChat: React.FC<ResponseAIChatProps> = ({
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  const startVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice input is not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      soundEffects.playVerificationBlip();
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInputText(transcript);
+      setIsListening(false);
+      handleSend(transcript);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      soundEffects.playEmergencyAlert();
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
 
   if (!isOpen) return null;
 
@@ -64,7 +94,6 @@ export const ResponseAIChat: React.FC<ResponseAIChatProps> = ({
     setInputText('');
     setIsTyping(true);
 
-    // AI response simulation with deterministic safety engine
     setTimeout(async () => {
       const aiReply = await aiService.getEmergencyResponse(query);
       soundEffects.playVerificationBlip();
@@ -217,6 +246,19 @@ export const ResponseAIChat: React.FC<ResponseAIChatProps> = ({
           onChange={(e) => setInputText(e.target.value)}
           className="flex-1 px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-xs sm:text-sm text-white focus:border-blue-500 focus:outline-none"
         />
+        <button
+          type="button"
+          onClick={startVoiceInput}
+          disabled={isListening}
+          className={`p-2.5 rounded-xl transition ${
+            isListening
+              ? 'bg-red-600 text-white animate-pulse'
+              : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700'
+          }`}
+          title="Voice input (Speech-to-Text)"
+        >
+          {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+        </button>
         <button
           type="submit"
           disabled={!inputText.trim()}

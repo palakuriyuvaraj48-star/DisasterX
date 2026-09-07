@@ -88,20 +88,58 @@ export class DisasterStore {
   private listeners: Set<() => void> = new Set();
 
   constructor() {
+    const defaults = this.getDefaultState();
     const saved = localStorage.getItem(STORAGE_KEY);
+
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(saved) as Partial<DisasterStoreState>;
+
+        const safeArray = <T>(value: unknown, fallback: T[]): T[] =>
+          Array.isArray(value) ? value : fallback;
+
+        const safeString = (value: unknown, fallback: string): string =>
+          typeof value === 'string' ? value : fallback;
+
+        const safeBoolean = (value: unknown, fallback: boolean): boolean =>
+          typeof value === 'boolean' ? value : fallback;
+
+        const safeNumber = (value: unknown, fallback: number): number =>
+          typeof value === 'number' ? value : fallback;
+
+        const safeObject = <T>(value: unknown, fallback: T): T =>
+          typeof value === 'object' && value !== null ? value as T : fallback;
+
         this.state = {
+          ...defaults,
           ...parsed,
-          // Ensure offline detection reflects actual browser state if connected
+          currentRole: safeString(parsed.currentRole, defaults.currentRole),
+          isEmergencyMode: safeBoolean(parsed.isEmergencyMode, defaults.isEmergencyMode),
+          isHighContrast: safeBoolean(parsed.isHighContrast, defaults.isHighContrast),
+          isAudioAlertsEnabled: safeBoolean(parsed.isAudioAlertsEnabled, defaults.isAudioAlertsEnabled),
           isOffline: !navigator.onLine,
+          lastSyncedTimestamp: safeString(parsed.lastSyncedTimestamp, defaults.lastSyncedTimestamp),
+          selectedDisaster: parsed.selectedDisaster ?? defaults.selectedDisaster,
+          incidents: safeArray(parsed.incidents, defaults.incidents),
+          shelters: safeArray(parsed.shelters, defaults.shelters),
+          hospitals: safeArray(parsed.hospitals, defaults.hospitals),
+          roadblocks: safeArray(parsed.roadblocks, defaults.roadblocks),
+          resources: safeArray(parsed.resources, defaults.resources),
+          teams: safeArray(parsed.teams, defaults.teams),
+          auditLogs: safeArray(parsed.auditLogs, defaults.auditLogs),
+          evacuationRoutes: safeArray(parsed.evacuationRoutes, defaults.evacuationRoutes),
+          riskZones: safeArray(parsed.riskZones, defaults.riskZones),
+          selectedMapItem: safeObject(parsed.selectedMapItem, defaults.selectedMapItem),
+          activeEvacuationRouteId: safeString(parsed.activeEvacuationRouteId, defaults.activeEvacuationRouteId),
+          simulation: safeObject(parsed.simulation, defaults.simulation),
+          broadcastAlert: safeObject(parsed.broadcastAlert, defaults.broadcastAlert),
+          offlineQueueCount: safeNumber(parsed.offlineQueueCount, defaults.offlineQueueCount),
         };
       } catch (e) {
-        this.state = this.getDefaultState();
+        this.state = defaults;
       }
     } else {
-      this.state = this.getDefaultState();
+      this.state = defaults;
     }
 
     // Bind browser online/offline events

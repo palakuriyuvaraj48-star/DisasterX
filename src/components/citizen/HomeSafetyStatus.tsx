@@ -5,9 +5,10 @@ import { useDisasterStore } from '../../services/useDisasterStore';
 export const HomeSafetyStatus: React.FC = () => {
   const { incidents, broadcastAlert, isOffline } = useDisasterStore();
 
-  const nearbyCritical = incidents.filter(i => i.severity === 'CRITICAL' && i.verificationStatus === 'VERIFIED');
-  const nearbyHigh = incidents.filter(i => i.severity === 'HIGH');
-  const hasBlockedRoads = incidents.some(i => i.isHazardBlocked);
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
+  const nearbyCritical = safeIncidents.filter(i => i.severity === 'CRITICAL' && i.verificationStatus === 'VERIFIED');
+  const nearbyHigh = safeIncidents.filter(i => i.severity === 'HIGH');
+  const hasBlockedRoads = safeIncidents.some(i => i.isHazardBlocked);
 
   let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW';
   let recommendation = 'Safe to proceed with normal activities';
@@ -58,7 +59,7 @@ export const HomeSafetyStatus: React.FC = () => {
             <div className="flex items-center gap-3 mt-2 text-[11px] text-gray-300 font-mono">
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
-                {incidents.length} active incidents nearby
+                {safeIncidents.length} active incidents nearby
               </span>
               {isOffline && (
                 <span className="flex items-center gap-1 text-amber-400">

@@ -29,6 +29,10 @@ export const EvacuationIntelligence: React.FC = () => {
     store 
   } = useDisasterStore();
 
+  const safeRoadblocks = Array.isArray(roadblocks) ? roadblocks : [];
+  const safeShelters = Array.isArray(shelters) ? shelters : [];
+  const safeEvacuationRoutes = Array.isArray(evacuationRoutes) ? evacuationRoutes : [];
+
   const [isSimulatedBlocked, setIsSimulatedBlocked] = useState(false);
   const [reassessingStage, setReassessingStage] = useState<'IDLE' | 'ANALYZING' | 'DONE'>('IDLE');
 
@@ -286,16 +290,16 @@ export const EvacuationIntelligence: React.FC = () => {
           <div className="bg-gray-950 p-4 rounded-2xl border border-gray-800 space-y-2">
             <span className="text-xs font-mono uppercase text-amber-400 font-bold flex items-center gap-1.5">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <span>Active Roadblocks in Sector ({roadblocks.length + (isSimulatedBlocked ? 1 : 0)})</span>
-            </span>
-            <div className="space-y-1.5 text-xs text-gray-300 font-mono">
-              {isSimulatedBlocked && (
-                <div className="p-2 bg-red-950/60 rounded-lg border border-red-800 flex justify-between items-center text-red-200">
-                  <span>Main Road Causeway (Zone A)</span>
-                  <span className="text-red-400 font-bold">SUBMERGED (4.8ft)</span>
-                </div>
-              )}
-              {roadblocks.map((rb) => (
+               <span>Active Roadblocks in Sector ({safeRoadblocks.length + (isSimulatedBlocked ? 1 : 0)})</span>
+             </span>
+             <div className="space-y-1.5 text-xs text-gray-300 font-mono">
+               {isSimulatedBlocked && (
+                 <div className="p-2 bg-red-950/60 rounded-lg border border-red-800 flex justify-between items-center text-red-200">
+                   <span>Main Road Causeway (Zone A)</span>
+                   <span className="text-red-400 font-bold">SUBMERGED (4.8ft)</span>
+                 </div>
+               )}
+               {safeRoadblocks.map((rb) => (
                 <div key={rb.id} className="p-2 bg-gray-900 rounded-lg border border-gray-800 flex justify-between items-center">
                   <span>{rb.name}</span>
                   <span className="text-red-400 font-bold">{rb.reason}</span>

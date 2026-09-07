@@ -1,24 +1,23 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { Home, MapPin, AlertTriangle, Bot, User, Siren } from 'lucide-react';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { soundEffects } from '../../services/soundEffects';
 
 interface BottomNavProps {
-  activeTab: 'HOME' | 'MAP' | 'ALERTS' | 'AI' | 'PROFILE';
-  onTabChange: (tab: 'HOME' | 'MAP' | 'ALERTS' | 'AI' | 'PROFILE') => void;
   onOpenEmergency: () => void;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenEmergency }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ onOpenEmergency }) => {
   const { broadcastAlert } = useDisasterStore();
   const hasCriticalAlert = broadcastAlert?.type === 'CRITICAL';
 
   const tabs = [
-    { id: 'HOME' as const, label: 'Home', icon: Home },
-    { id: 'MAP' as const, label: 'Map', icon: MapPin },
-    { id: 'ALERTS' as const, label: 'Alerts', icon: AlertTriangle, badge: hasCriticalAlert ? 1 : 0 },
-    { id: 'AI' as const, label: 'AI', icon: Bot },
-    { id: 'PROFILE' as const, label: 'Profile', icon: User },
+    { id: 'HOME' as const, label: 'Home', icon: Home, to: '/' },
+    { id: 'MAP' as const, label: 'Map', icon: MapPin, to: '/map' },
+    { id: 'ALERTS' as const, label: 'Alerts', icon: AlertTriangle, to: '/alerts', badge: hasCriticalAlert ? 1 : 0 },
+    { id: 'AI' as const, label: 'AI', icon: Bot, to: '/ai-assistant' },
+    { id: 'PROFILE' as const, label: 'Profile', icon: User, to: '/profile' },
   ];
 
   return (
@@ -38,30 +37,33 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, on
         <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
             return (
-              <button
+              <NavLink
                 key={tab.id}
-                onClick={() => {
-                  soundEffects.playVerificationBlip();
-                  onTabChange(tab.id);
-                }}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition min-w-[64px] ${
-                  isActive
-                    ? 'text-blue-400 bg-blue-950/50'
-                    : 'text-gray-500 hover:text-gray-300'
-                }`}
+                to={tab.to}
+                onClick={() => soundEffects.playVerificationBlip()}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition min-w-[64px] ${
+                    isActive
+                      ? 'text-blue-400 bg-blue-950/50'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`
+                }
               >
-                <div className="relative">
-                  <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : ''}`} />
-                  {tab.badge && tab.badge > 0 && (
-                    <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
-                      {tab.badge}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] font-mono font-bold">{tab.label}</span>
-              </button>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative">
+                      <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : ''}`} />
+                      {tab.badge && tab.badge > 0 && (
+                        <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
+                          {tab.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-mono font-bold">{tab.label}</span>
+                  </>
+                )}
+              </NavLink>
             );
           })}
         </div>

@@ -42,5 +42,3 @@ declare namespace google {
     }
   }
 }
-
-declare const google: any;

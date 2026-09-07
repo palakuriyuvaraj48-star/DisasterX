@@ -10,27 +10,33 @@ import { soundEffects } from '../../services/soundEffects';
 export const AIRecommendations: React.FC = () => {
   const { incidents, shelters, teams, store } = useDisasterStore();
   const [, setAcceptedCount] = useState(0);
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
-  const criticalIncidents = incidents.filter(i => i.severity === 'CRITICAL' && i.verificationStatus === 'VERIFIED');
-  const nearCapacityShelters = shelters.filter(s => {
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
+  const safeShelters = Array.isArray(shelters) ? shelters : [];
+  const safeTeams = Array.isArray(teams) ? teams : [];
+
+  const criticalIncidents = safeIncidents.filter(i => i.severity === 'CRITICAL');
+  const nearCapacityShelters = safeShelters.filter(s => {
+    if (!s.totalCapacity || s.totalCapacity <= 0) return false;
     const occ = (s.currentOccupancy / s.totalCapacity) * 100;
     return occ >= 80 && s.status === 'OPEN';
   });
-  const availableTeams = teams.filter(t => t.status === 'AVAILABLE');
+  const availableTeams = safeTeams.filter(t => t.status === 'AVAILABLE');
 
   const recommendations = [
     ...(criticalIncidents.length > 0 && availableTeams.length > 0 ? [{
       id: 'REC-01',
       title: `Deploy ${availableTeams[0].name} to nearest CRITICAL incident`,
-      reason: `${criticalIncidents.length} critical incident(s) verified with no nearby response unit assigned.`,
+      reason: `${criticalIncidents.length} critical incident(s) require active response unit assignment.`,
       impact: `Response time: 12 min → ${availableTeams[0].etaMinutes || 4} min`,
       action: 'Accept',
       type: 'DEPLOY_TEAM' as const
     }] : []),
-    ...(nearCapacityShelters.length > 0 ? [{
+    ...(nearCapacityShelters.length > 0 && nearCapacityShelters[0] ? [{
       id: 'REC-02',
       title: `Open alternate shelter or activate relief camp`,
-      reason: `${nearCapacityShelters[0].name} at ${Math.round((nearCapacityShelters[0].currentOccupancy / nearCapacityShelters[0].totalCapacity) * 100)}% capacity.`,
+      reason: `${nearCapacityShelters[0].name} at ${Math.round((nearCapacityShelters[0].currentOccupancy / (nearCapacityShelters[0].totalCapacity || 1)) * 100)}% capacity.`,
       impact: `Prevents overcrowding and ensures dignity of displaced persons`,
       action: 'Accept',
       type: 'OPEN_SHELTER' as const
@@ -43,7 +49,7 @@ export const AIRecommendations: React.FC = () => {
       action: 'Send Alert',
       type: 'ISSUE_ALERT' as const
     }] : []),
-    ...(availableTeams.length > 1 ? [{
+    ...(availableTeams.length > 1 && availableTeams[1] ? [{
       id: 'REC-04',
       title: `Pre-position ${availableTeams[1].name} at Sector 4 staging point`,
       reason: 'Proactive deployment reduces response latency for anticipated secondary incidents.',
@@ -53,19 +59,41 @@ export const AIRecommendations: React.FC = () => {
     }] : [])
   ];
 
+  const visibleRecommendations = recommendations.filter(r => !dismissedIds.includes(r.id));
+
   const handleAccept = (rec: any) => {
     soundEffects.playVerificationBlip();
     setAcceptedCount(prev => prev + 1);
+    setDismissedIds(prev => [...prev, rec.id]);
     
-    if (rec.type === 'DEPLOY_TEAM' && availableTeams.length > 0) {
+    if (rec.type === 'DEPLOY_TEAM' && availableTeams.length > 0 && criticalIncidents.length > 0) {
       const targetIncident = criticalIncidents[0];
       if (targetIncident) {
-        store.assignTeam(availableTeams[0].id, targetIncident.id, 'AI Recommendation Engine');
+        store.assignTeam(targetIncident.id, availableTeams[0].id, 'AI Recommendation Engine');
       }
+    } else if (rec.type === 'OPEN_SHELTER' && nearCapacityShelters.length > 0) {
+      const targetShelter = nearCapacityShelters[0];
+      if (targetShelter) {
+        store.updateShelterOccupancy(targetShelter.id, Math.floor(targetShelter.currentOccupancy * 0.7));
+      }
+    } else if (rec.type === 'ISSUE_ALERT') {
+      store.setBroadcastAlert({
+        id: `ALERT-${Date.now()}`,
+        type: 'CRITICAL',
+        message: 'Evacuation Alert: Immediate movement advised to designated emergency shelters.',
+        timestamp: 'Just now'
+      });
+    } else if (rec.type === 'PRE_POSITION' && availableTeams.length > 1) {
+      store.updateTeamStatus(availableTeams[1].id, 'STAGING');
     }
   };
 
-  if (recommendations.length === 0) {
+  const handleDismiss = (id: string) => {
+    soundEffects.playVerificationBlip();
+    setDismissedIds(prev => [...prev, id]);
+  };
+
+  if (visibleRecommendations.length === 0) {
     return (
       <div className="bg-gray-900/90 border border-gray-800 rounded-2xl p-6 shadow-xl text-center">
         <Sparkles className="w-8 h-8 text-blue-400 mx-auto mb-2 animate-pulse" />
@@ -83,12 +111,12 @@ export const AIRecommendations: React.FC = () => {
           <h3 className="text-base font-bold text-white font-mono">AI RECOMMENDATIONS</h3>
         </div>
         <span className="text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded border border-blue-800 font-mono font-bold">
-          {recommendations.length} SUGGESTIONS
+          {visibleRecommendations.length} SUGGESTIONS
         </span>
       </div>
 
       <div className="space-y-3">
-        {recommendations.map((rec) => (
+        {visibleRecommendations.map((rec) => (
           <div
             key={rec.id}
             className="bg-gray-950/80 border border-gray-800 hover:border-gray-700 rounded-xl p-4 transition space-y-2"
@@ -109,8 +137,9 @@ export const AIRecommendations: React.FC = () => {
                 <span>{rec.action}</span>
               </button>
               <button
-                onClick={() => soundEffects.playVerificationBlip()}
+                onClick={() => handleDismiss(rec.id)}
                 className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 transition"
+                title="Dismiss suggestion"
               >
                 <XCircle className="w-3.5 h-3.5" />
               </button>

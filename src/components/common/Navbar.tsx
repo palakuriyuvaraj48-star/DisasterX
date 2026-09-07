@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShieldAlert, 
   Eye, 
@@ -18,12 +19,7 @@ import { useDisasterStore } from '../../services/useDisasterStore';
 import { UserRole } from '../../types/disaster';
 import { DemoBadge, OperationalStatusBadge } from './DemoBadge';
 
-interface NavbarProps {
-  onOpenReportModal: () => void;
-  onOpenSimulationLab?: () => void;
-}
-
-export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal, onOpenSimulationLab }) => {
+export const Navbar: React.FC = () => {
   const { 
     currentRole, 
     isEmergencyMode, 
@@ -32,11 +28,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal, onOpenSimulat
     store 
   } = useDisasterStore();
 
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleRoleChange = (role: UserRole) => {
     store.setRole(role);
     setIsMobileMenuOpen(false);
+    if (role === 'CITIZEN') {
+      navigate('/');
+    } else if (role === 'RESPONDER') {
+      navigate('/responder');
+    } else if (role === 'ADMIN') {
+      navigate('/command-center');
+    }
   };
 
   return (
@@ -47,7 +51,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal, onOpenSimulat
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => store.setRole('CITIZEN')}
+              onClick={() => {
+                store.setRole('CITIZEN');
+                navigate('/');
+              }}
               className="flex items-center gap-2.5 text-left focus:outline-none"
             >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-red-700 to-amber-600 flex items-center justify-center shadow-lg shadow-red-900/30 border border-red-500/40">
@@ -115,24 +122,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal, onOpenSimulat
           {/* Action Tools & Toggles */}
           <div className="hidden sm:flex items-center gap-2">
             {/* Simulation Lab Direct Access */}
-            {onOpenSimulationLab && (
-              <button
-                onClick={onOpenSimulationLab}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 hover:from-blue-800/60 hover:to-indigo-800/60 text-blue-300 text-xs font-mono font-bold rounded-lg border border-blue-600/40 transition shadow"
-              >
-                <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                <span>📊 Simulation Lab</span>
-              </button>
-            )}
+            <Link
+              to="/simulation"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 hover:from-blue-800/60 hover:to-indigo-800/60 text-blue-300 text-xs font-mono font-bold rounded-lg border border-blue-600/40 transition shadow"
+            >
+              <Activity className="w-3.5 h-3.5 text-cyan-400" />
+              <span>📊 Simulation Lab</span>
+            </Link>
 
             {/* Quick Citizen Report Button */}
-            <button
-              onClick={onOpenReportModal}
+            <Link
+              to="/report-incident"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-amber-300 text-xs font-bold rounded-lg border border-gray-700 transition shadow-sm"
             >
               <MapPin className="w-3.5 h-3.5 text-amber-400" />
               <span>Report Incident</span>
-            </button>
+            </Link>
 
             {/* Accessibility High-Contrast Button */}
             <button
@@ -249,23 +254,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenReportModal, onOpenSimulat
           </div>
 
           <div className="pt-2 flex items-center justify-between gap-2">
-            <button
-              onClick={onOpenReportModal}
+            <Link
+              to="/report-incident"
+              onClick={() => setIsMobileMenuOpen(false)}
               className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-amber-300 text-xs font-bold rounded-lg text-center"
             >
               📍 Report Ground Incident
-            </button>
-            {onOpenSimulationLab && (
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  onOpenSimulationLab();
-                }}
-                className="py-2 px-3 bg-blue-900 text-blue-200 text-xs font-bold rounded-lg"
-              >
-                📊 Lab
-              </button>
-            )}
+            </Link>
+            <Link
+              to="/simulation"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="py-2 px-3 bg-blue-900 text-blue-200 text-xs font-bold rounded-lg"
+            >
+              📊 Lab
+            </Link>
           </div>
         </div>
       )}

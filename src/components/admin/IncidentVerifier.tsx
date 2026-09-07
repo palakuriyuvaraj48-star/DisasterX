@@ -50,7 +50,7 @@ export const IncidentVerifier: React.FC = () => {
 
   const handleAssign = (incidentId: string) => {
     if (!selectedTeamId) return;
-    store.assignTeam(selectedTeamId, incidentId);
+    store.assignTeam(incidentId, selectedTeamId);
     soundEffects.playVerificationBlip();
     setSelectedTeamId('');
   };

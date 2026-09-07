@@ -9,6 +9,7 @@ import {
   XCircle,
   Siren
 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDisasterStore } from '../../services/useDisasterStore';
 import { DISASTER_GUIDES } from '../../data/disasterGuides';
 import { DisasterType } from '../../types/disaster';
@@ -23,13 +24,19 @@ export const EmergencyMode: React.FC = () => {
     store,
     broadcastAlert
   } = useDisasterStore();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [activeDisaster, setActiveDisaster] = useState<DisasterType>(selectedDisaster || 'FLOOD');
   const [sosActive, setSosActive] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const guide = DISASTER_GUIDES[activeDisaster] || DISASTER_GUIDES.FLOOD;
-  const nearestOpenShelter = shelters.find(s => s.status === 'OPEN') || shelters[0];
-  const activeRoute = evacuationRoutes.find(r => r.id === activeEvacuationRouteId) || evacuationRoutes[1];
+  const nearestOpenShelter = (shelters && shelters.length > 0)
+    ? (shelters.find(s => s.status === 'OPEN') || shelters[0])
+    : null;
+  const activeRoute = (evacuationRoutes && evacuationRoutes.length > 0)
+    ? (evacuationRoutes.find(r => r.id === activeEvacuationRouteId) || evacuationRoutes[0])
+    : null;
 
   const handleSOS = () => {
     if (navigator.vibrate) {
@@ -65,7 +72,10 @@ export const EmergencyMode: React.FC = () => {
           </div>
 
           <button
-            onClick={() => store.toggleEmergencyMode(false)}
+            onClick={() => {
+              store.toggleEmergencyMode(false);
+              navigate('/');
+            }}
             className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white font-bold text-sm rounded-lg border-2 border-gray-600 transition"
           >
             ✕ Exit SOS
@@ -197,17 +207,60 @@ export const EmergencyMode: React.FC = () => {
               </span>
             </div>
 
-            <div className="bg-blue-950/40 border border-blue-800 p-3 rounded-xl space-y-1">
-              <div className="text-sm font-bold text-white">Recommended Shelter:</div>
-              <div className="text-base font-black text-blue-300">{nearestOpenShelter.name}</div>
-              <div className="text-xs text-yellow-300 font-mono">
-                📍 {nearestOpenShelter.locationName} (~{nearestOpenShelter.distanceKm} km away)
+            {nearestOpenShelter ? (
+              <div className="bg-blue-950/40 border border-blue-800 p-3 rounded-xl space-y-1">
+                <div className="text-sm font-bold text-white">Recommended Shelter:</div>
+                <div className="text-base font-black text-blue-300">{nearestOpenShelter.name}</div>
+                <div className="text-xs text-yellow-300 font-mono">
+                  📍 {nearestOpenShelter.locationName} (~{nearestOpenShelter.distanceKm} km away)
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-blue-950/40 border border-blue-800 p-3 rounded-xl text-xs text-gray-300">
+                Searching for nearest open shelters...
+              </div>
+            )}
 
-            <div className="mt-3 text-xs text-gray-300 bg-gray-900 p-2.5 rounded-lg font-mono">
-              <span className="text-blue-400 font-bold">ROUTE: </span>
-              {activeRoute.pathDescription}
+            {activeRoute ? (
+              <div className="mt-3 text-xs text-gray-300 bg-gray-900 p-2.5 rounded-lg font-mono">
+                <span className="text-blue-400 font-bold">ROUTE: </span>
+                {activeRoute.pathDescription}
+              </div>
+            ) : (
+              <div className="mt-3 text-xs text-gray-300 bg-gray-900 p-2.5 rounded-lg font-mono">
+                <span className="text-blue-400 font-bold">ROUTE: </span>
+                Proceed toward designated high-ground zones.
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-2 mt-3 pt-2 border-t border-gray-800">
+              <button
+                onClick={() => {
+                  store.toggleEmergencyMode(false);
+                  navigate('/shelters');
+                }}
+                className="py-1.5 px-2 bg-blue-900/60 hover:bg-blue-800 text-blue-200 rounded-lg text-xs font-bold font-mono transition text-center"
+              >
+                🏠 Shelters
+              </button>
+              <button
+                onClick={() => {
+                  store.toggleEmergencyMode(false);
+                  navigate('/evacuation');
+                }}
+                className="py-1.5 px-2 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 rounded-lg text-xs font-bold font-mono transition text-center"
+              >
+                🗺️ Safe Route
+              </button>
+              <button
+                onClick={() => {
+                  store.toggleEmergencyMode(false);
+                  navigate('/ai-assistant');
+                }}
+                className="py-1.5 px-2 bg-purple-900/60 hover:bg-purple-800 text-purple-200 rounded-lg text-xs font-bold font-mono transition text-center"
+              >
+                🤖 Assistant
+              </button>
             </div>
           </div>
 

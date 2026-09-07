@@ -113,7 +113,7 @@ export class DisasterStore {
         this.state = {
           ...defaults,
           ...parsed,
-          currentRole: safeString(parsed.currentRole, defaults.currentRole),
+          currentRole: safeString(parsed.currentRole, defaults.currentRole) as UserRole,
           isEmergencyMode: safeBoolean(parsed.isEmergencyMode, defaults.isEmergencyMode),
           isHighContrast: safeBoolean(parsed.isHighContrast, defaults.isHighContrast),
           isAudioAlertsEnabled: safeBoolean(parsed.isAudioAlertsEnabled, defaults.isAudioAlertsEnabled),
